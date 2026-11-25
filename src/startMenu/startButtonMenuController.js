@@ -122,7 +122,9 @@ export class StartButtonMenuController {
 
     get menuIsOpen() {
         return Boolean(
-            this._startMenuController?.isOpen || this._contextMenu.isOpen
+            this._startMenuController?.isOpen ||
+            (this._macosSpotlightMode() && this._spotlightController?.isOpen) ||
+            this._contextMenu.isOpen
         );
     }
 
@@ -224,7 +226,11 @@ export class StartButtonMenuController {
     ensureSpotlightController() {
         this._spotlightController ??= this._createStartMenuController({
             spotlight: true,
-            onOpenStateChanged: () => this.notifyMenuOpenStateChanged(),
+            onOpenStateChanged: open => {
+                if (this._macosSpotlightMode())
+                    this.actor.checked = open;
+                this.notifyMenuOpenStateChanged();
+            },
             getMonitor: () => Main.layoutManager.currentMonitor,
         });
         return this._spotlightController;
@@ -306,7 +312,7 @@ export class StartButtonMenuController {
 
     notifyMenuOpenStateChanged() {
         const shellShowAppsButton = Main.overview.dash.showAppsButton;
-        const open = this.windowsModeEnabled
+        const open = this.windowsModeEnabled || this._macosSpotlightMode()
             ? this.menuIsOpen
             : shellShowAppsButton.checked;
         this._onMenuOpenStateChanged(open);
@@ -315,6 +321,10 @@ export class StartButtonMenuController {
     toggleApplications() {
         if (this.windowsModeEnabled) {
             this.toggleStartMenu();
+            return;
+        }
+        if (this._macosSpotlightMode()) {
+            this.toggleSpotlight();
             return;
         }
 
@@ -356,7 +366,9 @@ export class StartButtonMenuController {
         const applicationsActive = shellShowAppsButton.checked;
         this.actor.checked = this.windowsModeEnabled
             ? Boolean(this._startMenuController?.isOpen)
-            : applicationsActive;
+            : this._macosSpotlightMode()
+                ? Boolean(this._spotlightController?.isOpen)
+                : applicationsActive;
         this._setActivitiesOverviewState(
             !applicationsActive && Main.overview._shown
         );
@@ -369,5 +381,9 @@ export class StartButtonMenuController {
 
     get windowsModeEnabled() {
         return this._settings.get_boolean('windows-start-menu-enabled');
+    }
+
+    _macosSpotlightMode() {
+        return this._settings.get_boolean('macos-dock-theme-enabled');
     }
 }

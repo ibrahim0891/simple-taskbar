@@ -18,6 +18,7 @@ import {
     applyWindowsXpThemeSettings,
 } from './windowsXpTheme.js';
 import {applyWindows10ThemeDefaults} from './windows10Theme.js';
+import {applyWindows11ThemeDefaults} from './windows11Theme.js';
 import {applyMacosDockDefaults} from './macosDockTheme.js';
 
 export const PANEL_MODE_TASKBAR = 'taskbar';
@@ -26,10 +27,12 @@ export const PANEL_MODE_DOCK = 'dock';
 export const PANEL_MODE_MACOS_DOCK = 'macos-dock';
 export const PANEL_MODE_WINDOWS_XP = 'windows-xp';
 export const PANEL_MODE_WINDOWS_10 = 'windows-10';
+export const PANEL_MODE_WINDOWS_11 = 'windows-11';
 
 const THEME_MODES = new Set([
     PANEL_MODE_WINDOWS_XP,
     PANEL_MODE_WINDOWS_10,
+    PANEL_MODE_WINDOWS_11,
     PANEL_MODE_MACOS_DOCK,
 ]);
 
@@ -65,6 +68,10 @@ const PROFILE_KEYS = new Map([
     [PANEL_MODE_WINDOWS_10, {
         settings: 'windows-10-mode-settings',
         saved: 'windows-10-mode-settings-saved',
+    }],
+    [PANEL_MODE_WINDOWS_11, {
+        settings: 'windows-11-mode-settings',
+        saved: 'windows-11-mode-settings-saved',
     }],
     [PANEL_MODE_MACOS_DOCK, {
         settings: 'macos-dock-mode-settings',
@@ -159,9 +166,11 @@ const MODE_SETTING_KEYS = new Set([
     'panel-profile-transition',
     'windows-xp-theme-enabled',
     'windows-10-theme-enabled',
+    'windows-11-theme-enabled',
     'macos-dock-theme-enabled',
     'start-menu-displaced-overlay-key',
     'start-menu-pinned-apps',
+    'start-menu-tile-sizes',
     'clock-style',
     'default-panel-clock-style',
     'clock-date-order',
@@ -298,6 +307,8 @@ export function getRequestedPanelMode(settings) {
         return PANEL_MODE_WINDOWS_XP;
     if (settings.get_boolean('windows-10-theme-enabled'))
         return PANEL_MODE_WINDOWS_10;
+    if (settings.get_boolean('windows-11-theme-enabled'))
+        return PANEL_MODE_WINDOWS_11;
     if (settings.get_boolean('macos-dock-theme-enabled'))
         return PANEL_MODE_MACOS_DOCK;
     if (settings.get_boolean('default-gnome-panel'))
@@ -499,6 +510,8 @@ function applyInitialPanelModeSettings(settings, mode) {
         applyMacosDockDefaults(settings);
     } else if (mode === PANEL_MODE_WINDOWS_10) {
         applyWindows10ThemeDefaults(settings);
+    } else if (mode === PANEL_MODE_WINDOWS_11) {
+        applyWindows11ThemeDefaults(settings);
     } else if (mode === PANEL_MODE_WINDOWS_XP) {
         settings.set_boolean('activities-button-visible', false);
         applyWindowsXpThemeAppearance(settings);
@@ -518,6 +531,10 @@ function setModeFlags(settings, mode) {
     settings.set_boolean(
         'windows-10-theme-enabled',
         mode === PANEL_MODE_WINDOWS_10
+    );
+    settings.set_boolean(
+        'windows-11-theme-enabled',
+        mode === PANEL_MODE_WINDOWS_11
     );
     settings.set_boolean('macos-dock-theme-enabled', mode === PANEL_MODE_MACOS_DOCK);
     if (mode === PANEL_MODE_MACOS_DOCK)

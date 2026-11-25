@@ -13,8 +13,24 @@ export function addStartMenuAppearanceGroup({settings, connectSettings, menuAppe
     });
     const startMenuAppearanceGroup = menuAppearanceSubpage.addGroup({
         title: _('Start Menu Appearance'),
-        description: _('Configure the Start Menu theme and transparency'),
+        description: _('Configure the Start Menu style, theme, and transparency'),
     });
+
+    const startMenuStyleRow = addToggleChoiceRow(
+        startMenuAppearanceGroup,
+        settings,
+        {
+            key: 'start-menu-style',
+            title: _('Start Menu Style'),
+            subtitle: _('Follow the active desktop mode or choose a Start Menu layout'),
+            choices: [
+                {value: 'auto', label: _('Auto')},
+                {value: 'windows-11', label: _('Windows 11')},
+                {value: 'windows-10', label: _('Windows 10')},
+            ],
+        },
+        connectSettings
+    );
 
     startMenuAppearanceGroup.add(followPanelThemeSwitch);
 
@@ -34,11 +50,20 @@ export function addStartMenuAppearanceGroup({settings, connectSettings, menuAppe
         connectSettings
     );
     const updateStartMenuThemeRows = () => {
+        const windowsXpThemeEnabled = settings.get_boolean(
+            'windows-xp-theme-enabled'
+        );
+        startMenuStyleRow.sensitive = menuEnabled() && !windowsXpThemeEnabled;
         followPanelThemeSwitch.sensitive = menuEnabled();
         startMenuThemeRow.sensitive = menuEnabled() &&
             !followPanelThemeSwitch.active;
     };
     onMenuChanged(updateStartMenuThemeRows);
+    connectSettings(
+        settings,
+        'changed::windows-xp-theme-enabled',
+        updateStartMenuThemeRows
+    );
     followPanelThemeSwitch.connect(
         'notify::active',
         updateStartMenuThemeRows

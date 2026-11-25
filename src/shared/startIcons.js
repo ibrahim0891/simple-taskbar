@@ -4,6 +4,7 @@
 const BUILTIN_START_ICONS = new Map([
     ['builtin:gnome', 'gnome-start-symbolic.svg'],
     ['builtin:eleven', 'eleven-start-symbolic.svg'],
+    ['builtin:windows11', 'windows-11.svg'],
     ['builtin:ten', 'ten-start-symbolic.svg'],
 ]);
 

@@ -116,7 +116,12 @@ export class StartMenuFooterController {
         this._syncLocationButtons(false);
         this.actor.add_child(settingsButton);
         this.actor.add_child(powerButton);
+        this._powerButton = powerButton;
         this._powerController.setButton(powerButton);
+    }
+
+    get powerButton() {
+        return this._powerButton;
     }
 
     _syncLocationButtons(notify = true) {

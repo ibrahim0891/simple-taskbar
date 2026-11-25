@@ -89,6 +89,29 @@ export function getRecommendedApps(settings, favorites, pinnedApps) {
         .slice(0, 6);
 }
 
+export function groupAppsAlphabetically(apps) {
+    const groups = new Map();
+    for (const app of apps) {
+        const name = app.get_name().trim();
+        const first = name.charAt(0).toLocaleUpperCase();
+        const key = /\p{L}/u.test(first) ? first : '#';
+        let list = groups.get(key);
+        if (!list) {
+            list = [];
+            groups.set(key, list);
+        }
+        list.push(app);
+    }
+    const sortedKeys = [...groups.keys()].sort((a, b) => {
+        if (a === '#')
+            return -1;
+        if (b === '#')
+            return 1;
+        return a.localeCompare(b);
+    });
+    return sortedKeys.map(key => [key, groups.get(key)]);
+}
+
 export function groupAppsByCategory(apps) {
     const groupedApps = new Map([
         ...APP_CATEGORIES.map(category => [category.id, []]),

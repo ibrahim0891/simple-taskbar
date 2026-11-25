@@ -652,7 +652,14 @@ export class StartButtonController {
             'changed::panel-theme-follow-system', syncStartMenuTheme,
             'changed::panel-theme', syncStartMenuTheme,
             'changed::windows-10-theme-enabled',
-            () => this._forEachMenu(menu => menu.syncTheme(true)),
+            () => this._forEachMenu(menu => {
+                menu.syncTheme(true);
+                menu.syncStyle?.();
+            }),
+            'changed::start-menu-style',
+            () => this._menuController.startMenu?.syncStyle(),
+            'changed::start-menu-tile-sizes',
+            () => this._menuController.startMenu?.refresh(),
             this
         );
         for (const key of [

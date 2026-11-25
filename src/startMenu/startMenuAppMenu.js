@@ -8,6 +8,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {extensionIsActive} from '../integration/extensionState.js';
+import {isWindows10StartMenuStyle} from '../shared/windows10Theme.js';
 import {TaskbarAppMenu} from '../taskbar/taskbarAppMenu.js';
 
 const DESKTOP_ICON_EXTENSIONS = [
@@ -120,13 +121,42 @@ export class StartMenuAppMenu extends TaskbarAppMenu {
             this.addMenuItem(this._moveOutOfFolderItem, 9);
         }
 
+        this._tileSizeSubmenu = new PopupMenu.PopupSubMenuMenuItem(
+            _('Resize tile')
+        );
+        this._tileSizeItems = new Map();
+        for (const [size, label] of [
+            ['small', _('Small')],
+            ['medium', _('Medium')],
+            ['wide', _('Wide')],
+            ['large', _('Large')],
+        ]) {
+            const item = new PopupMenu.PopupMenuItem(label);
+            item.connect('activate', () => this._setTileSize(size));
+            this._tileSizeSubmenu.menu.addMenuItem(item);
+            this._tileSizeItems.set(size, item);
+        }
+        this.addMenuItem(this._tileSizeSubmenu, this._folderId ? 10 : 9);
+
+        this._toggleTileLabelsItem = new PopupMenu.PopupMenuItem('');
+        this._toggleTileLabelsItem.connect('activate', () => {
+            const hidden = this._settings.get_boolean(
+                'start-menu-hide-pinned-app-titles'
+            );
+            this._settings.set_boolean(
+                'start-menu-hide-pinned-app-titles',
+                !hidden
+            );
+        });
+        this.addMenuItem(this._toggleTileLabelsItem, this._folderId ? 11 : 10);
+
         this._desktopShortcutItem = new PopupMenu.PopupMenuItem(
             _('Create Desktop Shortcut')
         );
         this._desktopShortcutItem.connect('activate', () => {
             void this._toggleDesktopShortcut();
         });
-        this.addMenuItem(this._desktopShortcutItem, this._folderId ? 10 : 9);
+        this.addMenuItem(this._desktopShortcutItem, this._folderId ? 12 : 11);
 
         this._connectAppAction(this._newWindowItem);
         this._connectAppAction(this._onGpuMenuItem);
@@ -154,6 +184,10 @@ export class StartMenuAppMenu extends TaskbarAppMenu {
         this._shortcutQueryCancellable = null;
         this._toggleStartItem = null;
         this._moveOutOfFolderItem = null;
+        this._tileSizeSubmenu = null;
+        this._tileSizeItems?.clear();
+        this._tileSizeItems = null;
+        this._toggleTileLabelsItem = null;
         this._desktopShortcutItem = null;
         this._pinnedModel = null;
         this._folderId = null;
@@ -219,6 +253,50 @@ export class StartMenuAppMenu extends TaskbarAppMenu {
         this._toggleStartItem.label.text = isPinned
             ? _('Unpin from Start')
             : _('Pin to Start');
+        this._updateTileSizeSubmenu(appId, isPinned);
+    }
+
+    _updateTileSizeSubmenu(appId, isPinned) {
+        if (!this._tileSizeSubmenu || !this._tileSizeItems)
+            return;
+
+        const win10Style = isWindows10StartMenuStyle(this._settings);
+        const visible = Boolean(appId && isPinned && win10Style);
+        this._tileSizeSubmenu.visible = visible;
+        if (this._toggleTileLabelsItem) {
+            this._toggleTileLabelsItem.visible = visible;
+            if (visible) {
+                const hidden = this._settings.get_boolean(
+                    'start-menu-hide-pinned-app-titles'
+                );
+                this._toggleTileLabelsItem.label.text = hidden
+                    ? _('Show tile labels')
+                    : _('Hide tile labels');
+            }
+        }
+        if (!visible)
+            return;
+
+        const currentSize = this._pinnedModel.getTileSize(appId);
+        for (const [size, item] of this._tileSizeItems.entries()) {
+            item.setOrnament(size === currentSize
+                ? PopupMenu.Ornament.DOT
+                : PopupMenu.Ornament.NONE);
+        }
+    }
+
+    _setTileSize(size) {
+        if (!this._app)
+            return;
+
+        const appId = this._app.get_id();
+        if (this._pinnedModel.setTileSize(appId, size)) {
+            this._onStartPinsChanged({
+                type: 'tile-size',
+                appId,
+                folderId: this._folderId,
+            });
+        }
     }
 
     _moveOutOfFolder() {

@@ -21,7 +21,7 @@ function colorComponents(value) {
 
 function panelBackgroundColor(settings, light) {
     if (!settings.get_boolean('custom-panel-color-enabled'))
-        return light ? '224, 229, 238' : '24, 24, 27';
+        return light ? '248, 250, 252' : '24, 24, 27';
 
     return colorComponents(settings.get_string('custom-panel-color'));
 }

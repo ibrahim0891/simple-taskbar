@@ -66,9 +66,14 @@ import {
     getPopupBlur,
 } from '../integration/blurMyShellRuntime.js';
 import {
+    APP_CATEGORIES,
     getAllApps,
+    groupAppsAlphabetically,
     groupAppsByCategory,
 } from './startMenuAppModel.js';
+import {isWindows10StartMenuStyle} from '../shared/windows10Theme.js';
+import {Windows10StartMenuRail} from './windows10StartMenuRail.js';
+import {Windows10StartMenuTilesBuilder} from './windows10StartMenuTiles.js';
 
 const GRID_COLUMNS = 6;
 const APP_TILE_WIDTH = 88;
@@ -80,6 +85,16 @@ const SPOTLIGHT_WIDTH = 680;
 const SPOTLIGHT_HEIGHT = 480;
 const SPOTLIGHT_TOP_RATIO = 0.22;
 const SPOTLIGHT_CLASS = 'simple-taskbar-spotlight';
+const ALPHA_PICKER_KEYS = [
+    '#', 'A', 'B', 'C',
+    'D', 'E', 'F', 'G',
+    'H', 'I', 'J', 'K',
+    'L', 'M', 'N', 'O',
+    'P', 'Q', 'R', 'S',
+    'T', 'U', 'V', 'W',
+    'X', 'Y', 'Z',
+];
+const ALPHA_PICKER_COLUMNS = 4;
 const BLURRED_CLASS =
     'simple-taskbar-windows-start-blurred';
 const BLUR_MY_SHELL_POPUP_CLASSES = [
@@ -136,8 +151,10 @@ export class StartMenuController {
 
         this._createContentArea();
         this._createFooter(settings);
+        this._createWin10Components(settings);
         if (this._spotlight)
             this._applySpotlightLayout();
+        this.syncStyle(false);
         this._showDefaultView();
         this._updateSize();
         this.syncTheme(true);
@@ -299,6 +316,18 @@ export class StartMenuController {
             listViewBuilder: this._listViewBuilder,
             onChanged: () => this._queuePrepare(),
         });
+        this._win10TilesBuilder = new Windows10StartMenuTilesBuilder(settings, {
+            pinnedModel: this._pinnedModel,
+            navigationController: this._navigationController,
+            tooltipController: this._tooltipController,
+            contextMenuController: this._contextMenuController,
+            pinnedDragController: this._pinnedDragController,
+            createRunningIndicator: (app, icon) =>
+                this._runningIndicatorController.createIconStack(app, icon),
+            launchApp: (app, actor) => this._launchApp(app, actor),
+            openFolderApps: (folderId, actor) => this._openFolderApps(folderId, actor),
+            syncButtonClasses: actor => this._syncShellButtonClasses(actor),
+        });
     }
 
     _createContentArea() {
@@ -323,6 +352,11 @@ export class StartMenuController {
             x_expand: true,
         });
         this._scrollView.add_child(this._content);
+        this._bodyStack = new St.Widget({
+            layout_manager: new Clutter.BinLayout(),
+            x_expand: true,
+            y_expand: true,
+        });
         this._body = new St.BoxLayout({
             style_class: 'simple-taskbar-windows-start-body',
             x_expand: true,
@@ -336,8 +370,34 @@ export class StartMenuController {
             displayAppList: (apps, categorized) =>
                 this._displayAppList(apps, categorized),
         });
-        this._body.add_child(this._scrollView);
-        this._root.add_child(this._body);
+        this._listStack = new St.Widget({
+            layout_manager: new Clutter.BinLayout(),
+            x_expand: true,
+            y_expand: true,
+        });
+        this._listStack.add_child(this._scrollView);
+        this._alphaHeaders = new Map();
+        this._alphaPicker = new St.BoxLayout({
+            style_class: 'simple-taskbar-win10-alpha-picker',
+            orientation: Clutter.Orientation.VERTICAL,
+            x_expand: true,
+            y_expand: true,
+            x_align: Clutter.ActorAlign.FILL,
+            y_align: Clutter.ActorAlign.FILL,
+            reactive: true,
+            visible: false,
+        });
+        this._alphaPicker.connect('key-press-event', (_actor, event) => {
+            if (event.get_key_symbol() === Clutter.KEY_Escape) {
+                this._closeAlphaPicker(true);
+                return Clutter.EVENT_STOP;
+            }
+            return Clutter.EVENT_PROPAGATE;
+        });
+        this._listStack.add_child(this._alphaPicker);
+        this._body.add_child(this._listStack);
+        this._bodyStack.add_child(this._body);
+        this._root.add_child(this._bodyStack);
     }
 
     _createFooter(settings) {
@@ -355,6 +415,85 @@ export class StartMenuController {
             onLocationsChanged: () => this._updateSize(),
         });
         this._root.add_child(this._footerController.actor);
+    }
+
+    _createWin10Components(settings) {
+        this._win10RailSpacer = new St.Widget({
+            width: 48,
+        });
+        this._win10RailSpacer.hide();
+        this._body.insert_child_at_index(this._win10RailSpacer, 0);
+
+        this._win10Rail = new Windows10StartMenuRail({
+            appSystem: this._appSystem,
+            powerController: this._powerController,
+            powerGIcon: this._powerGIcon,
+            settings,
+            settingsGIcon: this._settingsGIcon,
+            closeMenu: () => this.close(),
+            enableNavigation: actor =>
+                this._navigationController.enable(actor),
+            syncButtonClasses: actor =>
+                this._syncShellButtonClasses(actor),
+        });
+        this._win10Rail.actor.x_align = Clutter.ActorAlign.START;
+        this._win10Rail.actor.x_expand = true;
+        this._win10Rail.actor.hide();
+        this._bodyStack.add_child(this._win10Rail.actor);
+
+        this._win10TilesScroll = new St.ScrollView({
+            style_class: 'simple-taskbar-win10-tiles-scroll',
+            hscrollbar_policy: St.PolicyType.NEVER,
+            vscrollbar_policy: St.PolicyType.AUTOMATIC,
+            overlay_scrollbars: true,
+            y_expand: true,
+        });
+        for (const child of this._win10TilesScroll.get_children()) {
+            if (child instanceof St.ScrollBar)
+                child.add_style_class_name('simple-taskbar-windows-start-scrollbar');
+        }
+        this._win10TilesContent = new St.BoxLayout({
+            style_class: 'simple-taskbar-win10-tiles-content',
+            orientation: Clutter.Orientation.VERTICAL,
+            x_expand: true,
+        });
+        this._win10TilesScroll.add_child(this._win10TilesContent);
+        this._win10TilesScroll.hide();
+        this._body.add_child(this._win10TilesScroll);
+    }
+
+    _isWindows10Layout() {
+        return !this._spotlight && isWindows10StartMenuStyle(this._settings);
+    }
+
+    syncStyle(refreshView = true) {
+        if (this._spotlight)
+            return;
+
+        const win10 = this._isWindows10Layout();
+        if (win10) {
+            this._menu.actor.add_style_class_name('simple-taskbar-win10-layout');
+            this._header.hide();
+            this._footerController.actor.hide();
+            this._win10RailSpacer.show();
+            this._win10Rail.actor.show();
+            this._powerController.setButton(this._win10Rail.powerButton);
+        } else {
+            this._menu.actor.remove_style_class_name('simple-taskbar-win10-layout');
+            this._header.show();
+            this._footerController.actor.show();
+            this._win10RailSpacer.hide();
+            this._win10Rail.actor.hide();
+            this._win10TilesScroll.hide();
+            this._powerController.setButton(this._footerController.powerButton);
+        }
+
+        if (refreshView) {
+            this._showDefaultView();
+            this._updateSize();
+            if (!this.isOpen)
+                this._queuePrepare();
+        }
     }
 
     _connectMenuSignals() {
@@ -447,6 +586,8 @@ export class StartMenuController {
         this._searchController.cancel();
         this._contextMenuController.close();
         this._powerController.close();
+        this._closeAlphaPicker(false);
+        this._win10Rail?.setExpanded(false, false);
         closePopupMenu(this._menu, animate);
     }
 
@@ -459,6 +600,8 @@ export class StartMenuController {
             this._showSearchResults(query);
         else if (this._view === 'spotlight')
             this._showSpotlightIdle();
+        else if (this._isWindows10Layout())
+            this._showWin10View();
         else if (this._view === 'all')
             this._showAllApps(true);
         else if (this._view === 'folder' && this._activeFolderId)
@@ -503,6 +646,14 @@ export class StartMenuController {
         this._footerController.actor.hide();
         this._body.hide();
         this._searchView.entry.hint_text = _('Search');
+        if (!this._blurMyShellOwnsTransparency()) {
+            this._spotlightBlurEffect = new Shell.BlurEffect({
+                radius: 26,
+                brightness: 1.0,
+                mode: Shell.BlurMode.BACKGROUND,
+            });
+            this._menu.box.add_effect(this._spotlightBlurEffect);
+        }
     }
 
     _syncArrowSide() {
@@ -763,6 +914,18 @@ export class StartMenuController {
         this._menuOpenStateId = 0;
         this._searchView.destroy();
         this._searchView = null;
+        this._win10TilesBuilder.destroy();
+        this._win10TilesBuilder = null;
+        this._win10Rail.destroy();
+        this._win10Rail = null;
+        this._win10RailSpacer = null;
+        this._bodyStack = null;
+        this._win10TilesScroll = null;
+        this._win10TilesContent = null;
+        this._alphaHeaders?.clear();
+        this._alphaHeaders = null;
+        this._alphaPicker = null;
+        this._listStack = null;
         this._pinnedViewController.destroy();
         this._pinnedViewController = null;
         this._listViewBuilder.destroy();
@@ -781,6 +944,10 @@ export class StartMenuController {
         this._powerController.close();
         this._footerController.destroy();
         this._footerController = null;
+        if (this._spotlightBlurEffect) {
+            this._menu.box?.remove_effect(this._spotlightBlurEffect);
+            this._spotlightBlurEffect = null;
+        }
         this._menu.destroy();
         this._menu = null;
         if (this._spotlight) {
@@ -822,6 +989,8 @@ export class StartMenuController {
             this._showSearchResults(query);
         } else if (this._view === 'spotlight') {
             this._showSpotlightIdle();
+        } else if (this._isWindows10Layout()) {
+            this._showWin10View();
         } else if (this._view === 'all') {
             this._showAllApps();
         } else if (this._view === 'folder' && this._activeFolderId) {
@@ -956,6 +1125,7 @@ export class StartMenuController {
 
     syncUserAvatar() {
         this._footerController.syncUserAvatar();
+        this._win10Rail?.syncUserAvatar();
     }
 
     _showPinnedApps(animate = false, onShown = null) {
@@ -1002,10 +1172,34 @@ export class StartMenuController {
     _showDefaultView() {
         if (this._spotlight)
             this._showSpotlightIdle();
+        else if (this._isWindows10Layout())
+            this._showWin10View();
         else if (this._settings.get_boolean('start-menu-open-all-apps'))
             this._showAllApps();
         else
             this._showPinnedApps();
+    }
+
+    _showWin10View() {
+        this._searchController.cancel();
+        this._categorySidebarController.setVisible(false);
+        this._closeAlphaPicker(false);
+        this._setScrollbarPolicy(true);
+        this._view = 'win10';
+        this._activeFolderId = null;
+        this._win10TilesScroll.show();
+        this._win10TilesScroll.vadjustment.value = 0;
+
+        const apps = getAllApps(this._appSystem);
+        this._displayAlphabeticalAppList(apps);
+
+        for (const child of this._win10TilesContent.get_children())
+            child.destroy();
+        const pinnedItems = this._pinnedViewController.resolvePinnedItems();
+        this._win10TilesContent.add_child(
+            this._win10TilesBuilder.createTilesPane(pinnedItems)
+        );
+        this._updateSize();
     }
 
     _showPinnedFolder(folderId, animate = false) {
@@ -1087,21 +1281,86 @@ export class StartMenuController {
         );
     }
 
-    _showSpotlightIdle() {
+    _showSpotlightIdle(selectedCategory = 'all') {
         this._searchController.cancel();
         this._view = 'spotlight';
         this._activeFolderId = null;
         this._firstVisibleApp = null;
         this._searchView.selectedResult = null;
         this._clearContent();
-        this._body.hide();
         this._searchView.setFocusVisible(true);
+
+        if (!this._settings.get_boolean('macos-dock-theme-enabled')) {
+            this._body.hide();
+            this._updateSize();
+            return;
+        }
+
+        this._body.show();
+        this._categorySidebarController.setVisible(false);
+        this._setScrollbarPolicy(true);
+
+        const allApps = getAllApps(this._appSystem);
+        const grouped = groupAppsByCategory(allApps);
+        const badges = [
+            {id: 'all', label: _('All'), apps: allApps},
+            ...APP_CATEGORIES
+                .map(cat => ({
+                    id: cat.id,
+                    label: cat.label(),
+                    apps: grouped.get(cat.id) ?? [],
+                }))
+                .filter(cat => cat.apps.length > 0),
+        ];
+        const otherApps = grouped.get('other') ?? [];
+        if (otherApps.length > 0)
+            badges.push({id: 'other', label: _('Other'), apps: otherApps});
+
+        const badgeBar = new St.BoxLayout({
+            style_class: 'simple-taskbar-spotlight-badges',
+        });
+        for (const badge of badges) {
+            const active = badge.id === selectedCategory;
+            const btn = new St.Button({
+                style_class: active
+                    ? 'simple-taskbar-spotlight-badge simple-taskbar-spotlight-badge-active'
+                    : 'simple-taskbar-spotlight-badge',
+                reactive: true,
+                can_focus: true,
+                track_hover: true,
+                label: badge.label,
+            });
+            btn.connect('clicked', () => this._showSpotlightIdle(badge.id));
+            badgeBar.add_child(btn);
+        }
+
+        const activeEntry = badges.find(b => b.id === selectedCategory) ?? badges[0];
+        const visibleApps = activeEntry?.apps ?? allApps;
+        this._firstVisibleApp = visibleApps[0] ?? null;
+
+        const badgeScroll = new St.ScrollView({
+            style_class: 'simple-taskbar-spotlight-badges-scroll',
+            hscrollbar_policy: St.PolicyType.EXTERNAL,
+            vscrollbar_policy: St.PolicyType.NEVER,
+            overlay_scrollbars: true,
+            x_expand: true,
+        });
+        badgeScroll.add_child(badgeBar);
+        this._content.add_child(badgeScroll);
+        this._content.add_child(this._pinnedViewBuilder.createAppGrid(visibleApps, {
+            columns: 5,
+            tileWidth: 124,
+            iconSize: 48,
+            showTitle: true,
+        }));
         this._updateSize();
     }
 
     _showSearchResults(query) {
         this._body.show();
         this._categorySidebarController.setVisible(false);
+        this._closeAlphaPicker(false);
+        this._win10TilesScroll?.hide();
         this._setScrollbarPolicy(false);
         this._headerTitle.text = _('Search results');
         this._allAppsButton.hide();
@@ -1132,6 +1391,155 @@ export class StartMenuController {
             text: _('No results found'),
             x_align: Clutter.ActorAlign.CENTER,
         }));
+    }
+
+    _displayAlphabeticalAppList(apps) {
+        this._clearContent();
+        this._alphaHeaders.clear();
+        this._firstVisibleApp = apps[0] ?? null;
+        this._searchView.selectedResult = null;
+        if (apps.length === 0) {
+            this._showEmptyMessage();
+            return;
+        }
+
+        const list = new St.BoxLayout({
+            style_class: 'simple-taskbar-windows-start-app-list',
+            orientation: Clutter.Orientation.VERTICAL,
+        });
+        for (const [letter, groupApps] of groupAppsAlphabetically(apps)) {
+            const headerButton = new St.Button({
+                style_class: 'simple-taskbar-win10-alpha-header-button',
+                reactive: true,
+                can_focus: true,
+                track_hover: true,
+                x_align: Clutter.ActorAlign.START,
+                accessible_name: letter,
+                child: new St.Label({
+                    style_class: 'simple-taskbar-win10-alpha-header',
+                    text: letter,
+                    x_align: Clutter.ActorAlign.START,
+                }),
+            });
+            this._navigationController.enable(headerButton);
+            headerButton.connect('clicked', () => this._openAlphaPicker());
+            this._syncShellButtonClasses(headerButton);
+            this._alphaHeaders.set(letter, headerButton);
+            list.add_child(headerButton);
+            for (const app of groupApps) {
+                list.add_child(
+                    this._listViewBuilder.createAppListButton(
+                        app,
+                        false,
+                        false,
+                        182
+                    )
+                );
+            }
+        }
+        this._content.add_child(list);
+    }
+
+    _openAlphaPicker() {
+        if (!this._alphaPicker || this._alphaHeaders.size === 0)
+            return;
+
+        this._alphaPicker.remove_all_transitions();
+        for (const child of this._alphaPicker.get_children())
+            child.destroy();
+
+        const grid = new St.BoxLayout({
+            style_class: 'simple-taskbar-win10-alpha-grid',
+            orientation: Clutter.Orientation.VERTICAL,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+            x_expand: true,
+            y_expand: true,
+        });
+
+        let firstActive = null;
+        for (let i = 0; i < ALPHA_PICKER_KEYS.length; i += ALPHA_PICKER_COLUMNS) {
+            const row = new St.BoxLayout({
+                style_class: 'simple-taskbar-win10-alpha-row',
+            });
+            const chunk = ALPHA_PICKER_KEYS.slice(i, i + ALPHA_PICKER_COLUMNS);
+            for (const letter of chunk) {
+                const enabled = this._alphaHeaders.has(letter);
+                const cell = new St.Button({
+                    style_class: enabled
+                        ? 'simple-taskbar-win10-alpha-cell'
+                        : 'simple-taskbar-win10-alpha-cell simple-taskbar-win10-alpha-cell-disabled',
+                    reactive: enabled,
+                    can_focus: enabled,
+                    track_hover: enabled,
+                    accessible_name: letter,
+                    child: new St.Label({
+                        text: letter,
+                        x_align: Clutter.ActorAlign.CENTER,
+                        y_align: Clutter.ActorAlign.CENTER,
+                    }),
+                });
+                if (enabled) {
+                    if (!firstActive)
+                        firstActive = cell;
+                    cell.connect('clicked', () => {
+                        this._scrollToAlphaLetter(letter);
+                        this._closeAlphaPicker(true);
+                    });
+                }
+                row.add_child(cell);
+            }
+            for (let empty = chunk.length; empty < ALPHA_PICKER_COLUMNS; empty++) {
+                row.add_child(new St.Widget({
+                    style_class: 'simple-taskbar-win10-alpha-cell-spacer',
+                }));
+            }
+            grid.add_child(row);
+        }
+
+        this._alphaPicker.add_child(grid);
+        this._alphaPicker.opacity = 0;
+        this._alphaPicker.show();
+        this._alphaPicker.ease({
+            opacity: 255,
+            duration: 150,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
+        firstActive?.grab_key_focus();
+    }
+
+    _closeAlphaPicker(animate = true) {
+        if (!this._alphaPicker || !this._alphaPicker.visible)
+            return;
+
+        this._alphaPicker.remove_all_transitions();
+        if (!animate) {
+            this._alphaPicker.hide();
+            this._alphaPicker.opacity = 255;
+            return;
+        }
+
+        this._alphaPicker.ease({
+            opacity: 0,
+            duration: 120,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                if (this._alphaPicker) {
+                    this._alphaPicker.hide();
+                    this._alphaPicker.opacity = 255;
+                }
+            },
+        });
+    }
+
+    _scrollToAlphaLetter(letter) {
+        const header = this._alphaHeaders.get(letter);
+        if (!header || !this._scrollView)
+            return;
+
+        const targetY = Math.max(0, header.get_allocation_box().y1);
+        this._scrollView.vadjustment.value = targetY;
+        header.grab_key_focus();
     }
 
     _displayAppList(apps, categorized = false) {
@@ -1216,7 +1624,8 @@ export class StartMenuController {
 
     _animatePinnedMutation(change) {
         if (!this.isOpen || this._searchView.entry.get_text().trim() ||
-            (this._view !== 'pinned' && this._view !== 'folder')) {
+            (this._view !== 'pinned' && this._view !== 'folder' &&
+                this._view !== 'win10')) {
             return;
         }
 
@@ -1283,6 +1692,8 @@ export class StartMenuController {
 
     _findContentActor(predicate) {
         const actors = [this._content];
+        if (this._win10TilesContent)
+            actors.push(this._win10TilesContent);
         while (actors.length > 0) {
             const actor = actors.pop();
             if (predicate(actor))
@@ -1330,6 +1741,15 @@ export class StartMenuController {
             return;
         if (this._spotlight) {
             this._updateSpotlightSize(monitor);
+            return;
+        }
+        if (this._isWindows10Layout()) {
+            const width = Math.min(688, Math.max(480, monitor.width - 32));
+            const height = Math.min(
+                640,
+                Math.max(MENU_MIN_HEIGHT, monitor.height - MENU_MONITOR_MARGIN)
+            );
+            this._setRootSize(width, height);
             return;
         }
 

@@ -70,3 +70,14 @@ export function applyWindows10ThemeDefaults(settings) {
     setBoolean(settings, 'activities-button-visible', false);
     applyWindows10ThemeSettings(settings);
 }
+
+export function isWindows10StartMenuStyle(settings) {
+    if (settings.get_boolean('windows-xp-theme-enabled'))
+        return false;
+    const style = settings.get_string('start-menu-style');
+    if (style === 'windows-10')
+        return true;
+    if (style === 'windows-11')
+        return false;
+    return settings.get_boolean('windows-10-theme-enabled');
+}

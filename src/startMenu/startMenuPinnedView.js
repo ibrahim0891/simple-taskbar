@@ -44,6 +44,22 @@ export class StartMenuPinnedViewBuilder {
         );
     }
 
+    createAppGrid(apps, options = {}) {
+        return this._createTileGrid(
+            apps,
+            undefined,
+            app => this._createAppTile(
+                app,
+                null,
+                null,
+                options.tileWidth,
+                options.showTitle,
+                options.iconSize
+            ),
+            options
+        );
+    }
+
     destroy() {
         this._syncButtonClasses = null;
         this._showFolder = null;
@@ -57,29 +73,32 @@ export class StartMenuPinnedViewBuilder {
         this._settings = null;
     }
 
-    _createTileGrid(items, folderId, createTile) {
+    _createTileGrid(items, folderId, createTile, options = {}) {
+        const columns = options.columns ?? this._columns;
+        const tileWidth = options.tileWidth ?? this._tileWidth;
         const grid = new St.BoxLayout({
             style_class: 'simple-taskbar-windows-start-app-grid',
             orientation: Clutter.Orientation.VERTICAL,
         });
-        this._pinnedDragController.attachGrid(grid, folderId);
-        for (let index = 0; index < items.length; index += this._columns) {
+        if (folderId !== undefined)
+            this._pinnedDragController.attachGrid(grid, folderId);
+        for (let index = 0; index < items.length; index += columns) {
             const row = new St.BoxLayout({
                 style_class: 'simple-taskbar-windows-start-app-row',
                 x_align: Clutter.ActorAlign.CENTER,
             });
-            const rowItems = items.slice(index, index + this._columns);
+            const rowItems = items.slice(index, index + columns);
             for (const item of rowItems)
                 row.add_child(createTile(item, grid));
-            for (let empty = rowItems.length; empty < this._columns; empty++)
-                row.add_child(new St.Widget({width: this._tileWidth}));
+            for (let empty = rowItems.length; empty < columns; empty++)
+                row.add_child(new St.Widget({width: tileWidth}));
             grid.add_child(row);
         }
         return grid;
     }
 
-    _createAppTile(app, pinnedGrid = null, folderId = null) {
-        const hideTitle = this._settings.get_boolean(
+    _createAppTile(app, pinnedGrid = null, folderId = null, tileWidthOverride = null, forceShowTitle = false, iconSizeOverride = null) {
+        const hideTitle = !forceShowTitle && this._settings.get_boolean(
             'start-menu-hide-pinned-app-titles'
         );
         const content = new St.BoxLayout({
@@ -91,19 +110,23 @@ export class StartMenuPinnedViewBuilder {
         });
         if (hideTitle)
             content.y_align = Clutter.ActorAlign.CENTER;
-        const icon = app.create_icon_texture(hideTitle ? 48 : 32);
+        const iconSize = iconSizeOverride ?? (hideTitle ? 48 : 32);
+        const icon = app.create_icon_texture(iconSize);
         const iconContent = hideTitle
             ? icon
             : new St.Bin({
                 child: icon,
-                height: 39,
+                height: iconSize + 7,
                 x_align: Clutter.ActorAlign.CENTER,
                 y_align: Clutter.ActorAlign.END,
             });
         content.add_child(hideTitle
             ? this._createRunningIndicator(app, iconContent)
             : iconContent);
-        const label = createAppLabel(app.get_name(), 78);
+        const label = createAppLabel(
+            app.get_name(),
+            tileWidthOverride ? tileWidthOverride - 16 : 78
+        );
         label.add_style_class_name('simple-taskbar-windows-start-app-tile-label');
         label.visible = !hideTitle;
         label.x_align = Clutter.ActorAlign.CENTER;
@@ -113,11 +136,17 @@ export class StartMenuPinnedViewBuilder {
             line_wrap_mode: Pango.WrapMode.WORD_CHAR,
         });
         content.add_child(label);
+        const surfaceWidth = tileWidthOverride
+            ? tileWidthOverride - 12
+            : TILE_SURFACE_WIDTH;
+        const surfaceHeight = iconSize > 32
+            ? TILE_SURFACE_HEIGHT + (iconSize - 32)
+            : TILE_SURFACE_HEIGHT;
         const surface = new St.Bin({
             style_class: 'simple-taskbar-windows-start-app-surface',
             child: content,
-            width: TILE_SURFACE_WIDTH,
-            height: TILE_SURFACE_HEIGHT,
+            width: surfaceWidth,
+            height: surfaceHeight,
             x_align: Clutter.ActorAlign.CENTER,
             y_align: Clutter.ActorAlign.CENTER,
         });
@@ -126,7 +155,7 @@ export class StartMenuPinnedViewBuilder {
             reactive: true,
             can_focus: true,
             track_hover: true,
-            width: this._tileWidth,
+            width: tileWidthOverride ?? this._tileWidth,
             accessible_name: app.get_name(),
             child: surface,
         });
@@ -164,7 +193,7 @@ export class StartMenuPinnedViewBuilder {
             reactive: true,
             can_focus: true,
             track_hover: true,
-            width: this._tileWidth,
+            width: tileWidthOverride ?? this._tileWidth,
             accessible_name: folder.name,
             child: content,
         });

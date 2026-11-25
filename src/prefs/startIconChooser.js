@@ -80,6 +80,8 @@ export function getStartIconDisplayName(location) {
         return _('GNOME');
     if (location === 'builtin:eleven')
         return _('Eleven-style');
+    if (location === 'builtin:windows11')
+        return _('Windows 11');
     if (location === 'builtin:ten')
         return _('Ten-style');
     if (location.startsWith('distro:')) {
@@ -207,6 +209,11 @@ class StartIconChooserDialog extends Adw.Window {
                 location: 'builtin:eleven',
                 displayName: _('Eleven-style'),
                 searchText: 'eleven style built in',
+            },
+            {
+                location: 'builtin:windows11',
+                displayName: _('Windows 11'),
+                searchText: 'windows 11 eleven blue built in',
             },
             {
                 location: 'builtin:ten',

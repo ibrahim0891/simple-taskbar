@@ -686,4 +686,39 @@ export function addPanelItemsPage({
     );
     syncPanelItemOrder();
     syncPanelPositionSensitivity();
+
+    const widgetsGroup = new Adw.PreferencesGroup({
+        title: _('Windows 11 Widgets'),
+        description: _('Configure optional Windows 11 panel widgets'),
+    });
+    page.add(widgetsGroup);
+    const weatherWidgetRow = createSwitchRow(settings, {
+        key: 'windows-11-weather-visible',
+        title: _('Show Weather Widget'),
+        subtitle: _('Show the left-side GNOME Weather widget when GNOME Weather is installed'),
+    });
+    widgetsGroup.add(weatherWidgetRow);
+    const searchBarRow = createSwitchRow(settings, {
+        key: 'windows-11-search-bar-visible',
+        title: _('Show Search Bar'),
+        subtitle: _('Show a Windows 11 search bar next to the Start button'),
+    });
+    widgetsGroup.add(searchBarRow);
+    const syncWeatherWidgetSensitivity = () => {
+        const win11 = settings.get_boolean('windows-11-theme-enabled');
+        const win10 = settings.get_boolean('windows-10-theme-enabled');
+        weatherWidgetRow.sensitive = win11;
+        searchBarRow.sensitive = win11 || win10;
+    };
+    connectSettings(
+        settings,
+        'changed::windows-11-theme-enabled',
+        syncWeatherWidgetSensitivity
+    );
+    connectSettings(
+        settings,
+        'changed::windows-10-theme-enabled',
+        syncWeatherWidgetSensitivity
+    );
+    syncWeatherWidgetSensitivity();
 }

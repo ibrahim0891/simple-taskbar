@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <title>Windows 11</title>
+  <defs>
+    <linearGradient id="win11-grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4CC2FF"/>
+      <stop offset="100%" stop-color="#0078D4"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="9.25" height="9.25" rx="0.5" fill="url(#win11-grad)"/>
+  <rect x="12.75" y="2" width="9.25" height="9.25" rx="0.5" fill="url(#win11-grad)"/>
+  <rect x="2" y="12.75" width="9.25" height="9.25" rx="0.5" fill="url(#win11-grad)"/>
+  <rect x="12.75" y="12.75" width="9.25" height="9.25" rx="0.5" fill="url(#win11-grad)"/>
+</svg>

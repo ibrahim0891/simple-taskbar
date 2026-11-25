@@ -10,6 +10,7 @@ import {gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions
 
 import {panelApplicationSettings} from '../shared/defaultPanelWindowSettings.js';
 import {isDefaultPanelWithoutDock} from '../shared/panelModeProfiles.js';
+import {isWindows10StartMenuStyle} from '../shared/windows10Theme.js';
 import {
     START_BUTTON_LOCATION_KEY,
     dynamicTaskbarEnabled,
@@ -464,12 +465,24 @@ export function addStartMenuPage({
     startMenuOptionsGroup.add(hidePinnedAppTitlesSwitch);
     startMenuOptionsGroup.add(runningIndicatorsSwitch);
     const updateRecommendedAppsSwitch = () => {
+        const win10Style = isWindows10StartMenuStyle(settings);
         const sensitive = elevenEnabled() &&
             !openAllAppsSwitch.active;
-        recommendedAppsSwitch.sensitive = sensitive;
-        hidePinnedAppTitlesSwitch.sensitive = sensitive;
+        recommendedAppsSwitch.sensitive = sensitive && !win10Style;
+        hidePinnedAppTitlesSwitch.sensitive = elevenEnabled() &&
+            (win10Style || !openAllAppsSwitch.active);
     };
     onElevenChanged(updateRecommendedAppsSwitch);
+    connectSettings(
+        settings,
+        'changed::start-menu-style',
+        updateRecommendedAppsSwitch
+    );
+    connectSettings(
+        settings,
+        'changed::windows-10-theme-enabled',
+        updateRecommendedAppsSwitch
+    );
     openAllAppsSwitch.connect(
         'notify::active',
         updateRecommendedAppsSwitch

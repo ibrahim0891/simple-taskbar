@@ -184,6 +184,18 @@ export function drawWindows10Mode(cr, width, height, palette) {
     });
 }
 
+export function drawWindows11Mode(cr, width, height, palette) {
+    drawScreen(cr, width, height, palette, screen => {
+        const bar = edgeRectangle(screen, 'bottom', BAR_THICKNESS + 1);
+        fillRectangle(cr, bar, WINDOWS_10_BAR);
+        const startSize = bar.height * 0.7;
+        const centerX = bar.x + (bar.width - startSize * 3.2) / 2;
+        const y = bar.y + (bar.height - startSize) / 2;
+        fillRectangle(cr, {x: centerX, y, width: startSize, height: startSize}, WINDOWS_10_START);
+        fillRectangle(cr, {x: centerX + startSize * 1.3, y, width: startSize * 1.9, height: startSize}, [0.65, 0.72, 0.82, 0.9]);
+    });
+}
+
 export function addChoiceCards(group, {choices, columns = 0, onSelected, connectSettings}) {
     const styleManager = Adw.StyleManager.get_default();
     const container = columns

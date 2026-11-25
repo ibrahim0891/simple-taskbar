@@ -12,6 +12,7 @@ import {
     PANEL_MODE_MACOS_DOCK,
     PANEL_MODE_TASKBAR,
     PANEL_MODE_WINDOWS_10,
+    PANEL_MODE_WINDOWS_11,
     PANEL_MODE_WINDOWS_XP,
     activeDockMode,
     getRequestedPanelMode,
@@ -25,6 +26,7 @@ import {
     drawMacosDockMode,
     drawTaskbarMode,
     drawWindows10Mode,
+    drawWindows11Mode,
     drawWindowsXpMode,
 } from './choiceCards.js';
 import {
@@ -134,6 +136,13 @@ export function addPanelModeGroup({
             draw: drawWindows10Mode,
             subtitle: _('Apply a Windows 10-inspired taskbar style'),
             tooltip: _('Windows 10 Theme Overview Behavior'),
+        },
+        {
+            mode: PANEL_MODE_WINDOWS_11,
+            label: _('Windows 11'),
+            draw: drawWindows11Mode,
+            subtitle: _('Apply a Windows 11-inspired centered taskbar with rounded highlights'),
+            tooltip: _('Windows 11 Theme Overview Behavior'),
         },
         {
             mode: PANEL_MODE_MACOS_DOCK,

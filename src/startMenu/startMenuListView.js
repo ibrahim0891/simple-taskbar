@@ -49,11 +49,11 @@ export class StartMenuListViewBuilder {
         return grid;
     }
 
-    createAppListButton(app, compact = false, categorized = false) {
+    createAppListButton(app, compact = false, categorized = false, labelWidth = null) {
         const icon = app.create_icon_texture(compact ? 24 : 32);
         const label = createAppLabel(
             app.get_name(),
-            compact ? 190 : categorized ? 330 : 480
+            labelWidth ?? (compact ? 190 : categorized ? 330 : 480)
         );
         const button = this._createListButton({
             styleClass: compact

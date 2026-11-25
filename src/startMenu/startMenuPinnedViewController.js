@@ -44,7 +44,7 @@ export class StartMenuPinnedViewController {
     }
 
     ensure() {
-        const pinnedItems = this._resolvePinnedItems();
+        const pinnedItems = this.resolvePinnedItems();
         const pinnedApps = pinnedItems.flatMap(item =>
             item.type === 'app' ? [item.app] : item.apps
         );
@@ -104,7 +104,7 @@ export class StartMenuPinnedViewController {
         this._onChanged();
     }
 
-    _resolvePinnedItems() {
+    resolvePinnedItems() {
         const items = [];
         for (const item of this._pinnedModel.getItems()) {
             if (item.type === 'app') {

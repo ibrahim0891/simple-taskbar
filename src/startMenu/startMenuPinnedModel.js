@@ -9,6 +9,9 @@ import {
     encodePinnedFolder,
 } from '../shared/pinnedItemFormat.js';
 
+export const TILE_SIZES = Object.freeze(['small', 'medium', 'wide', 'large']);
+const VALID_TILE_SIZES = new Set(TILE_SIZES);
+
 export function pinnedAppItemKey(appId) {
     return `app:${appId}`;
 }
@@ -249,6 +252,38 @@ export class StartMenuPinnedModel {
         );
         items[folderIndex] = folderItem(folder.id, folder.name, appIds);
         this._save(items);
+        return true;
+    }
+
+    getTileSize(appId) {
+        if (!appId)
+            return 'medium';
+        const sizes = this._settings
+            .get_value('start-menu-tile-sizes')
+            .deep_unpack();
+        const size = sizes[appId];
+        return VALID_TILE_SIZES.has(size) ? size : 'medium';
+    }
+
+    setTileSize(appId, size) {
+        if (!appId || !VALID_TILE_SIZES.has(size))
+            return false;
+        const sizes = this._settings
+            .get_value('start-menu-tile-sizes')
+            .deep_unpack();
+        const current = VALID_TILE_SIZES.has(sizes[appId])
+            ? sizes[appId]
+            : 'medium';
+        if (current === size)
+            return false;
+        if (size === 'medium')
+            delete sizes[appId];
+        else
+            sizes[appId] = size;
+        this._settings.set_value(
+            'start-menu-tile-sizes',
+            new GLib.Variant('a{ss}', sizes)
+        );
         return true;
     }
 

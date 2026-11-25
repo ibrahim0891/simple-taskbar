@@ -21,6 +21,8 @@ import {
 } from './panelButtonPaddingController.js';
 import {allocatePanelButtonHighlightLayers} from './panelButtonHighlightLayer.js';
 import {PanelClockController} from './panelClockController.js';
+import {PanelSearchBarController} from './panelSearchBarController.js';
+import {PanelWeatherController} from './panelWeatherController.js';
 import {placePanelItems} from '../shared/panelItemOrder.js';
 import {createPanelItems, refreshPanelBoxSizes} from './panelItems.js';
 import {PanelMenuPositioner} from './panelMenuPositioner.js';
@@ -106,6 +108,8 @@ export class PrimaryPanelController {
         this._activitiesDotWidthOverride = null;
         this._activitiesController = null;
         this._clockController = null;
+        this._searchBarController = null;
+        this._weatherController = null;
         this._verticalPanelCompatibilityController =
             new VerticalPanelCompatibilityController(settings);
         this._verticalItemsController = new PanelVerticalItemsController(
@@ -218,6 +222,10 @@ export class PrimaryPanelController {
             () => this._panelHeight
         );
         this._clockController.enable();
+        this._searchBarController = new PanelSearchBarController(this._settings);
+        this._searchBarController.enable();
+        this._weatherController = new PanelWeatherController(this._settings);
+        this._weatherController.enable();
         this._themeController = new PrimaryPanelThemeController(
             this._settings,
             this._stateController.oldPanelStyle,
@@ -286,6 +294,10 @@ export class PrimaryPanelController {
         this._activitiesDotWidthOverride = null;
         this._clockController.destroy();
         this._clockController = null;
+        this._searchBarController.destroy();
+        this._searchBarController = null;
+        this._weatherController.destroy();
+        this._weatherController = null;
         this._focusedAppController.destroy();
         this._focusedAppController = null;
         this._hoverRepair.destroy();
@@ -527,6 +539,8 @@ export class PrimaryPanelController {
             items,
             this._settings.get_strv('panel-item-order')
         );
+        this._placeSearchBarNextToStart();
+        this._weatherController?.sync();
         this._buttonPaddingController.syncEdgePadding();
         this._notificationAreaController.syncRightBoxActors(
             rightBox,
@@ -538,6 +552,21 @@ export class PrimaryPanelController {
         this._verticalItemsController.sync();
         this._syncShowDesktopPanelCorner();
         this.updateTaskbarWidth();
+    }
+
+    _placeSearchBarNextToStart() {
+        const actor = this._searchBarController?.actor;
+        const startParent = this._startButton?.get_parent();
+        if (!actor || !startParent)
+            return;
+
+        if (actor.get_parent() !== startParent) {
+            actor.get_parent()?.remove_child(actor);
+            startParent.insert_child_above(actor, this._startButton);
+        } else {
+            startParent.set_child_above_sibling(actor, this._startButton);
+        }
+        this._searchBarController.sync();
     }
 
     _syncShowDesktopPanelCorner() {

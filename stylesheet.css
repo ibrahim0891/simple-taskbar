@@ -201,7 +201,7 @@
 }
 
 .simple-taskbar-panel.simple-taskbar-theme-light {
-    background-color: rgb(224, 229, 238);
+    background-color: rgb(248, 250, 252);
     border-top-color: rgba(0, 0, 0, 0.20);
     box-shadow: none;
 }
@@ -1182,7 +1182,8 @@
 }
 
 .simple-taskbar-windows-start-dark .simple-taskbar-windows-start-search:focus {
-    border-color: rgba(96, 174, 247, 0.78);
+    border-color: rgba(255, 255, 255, 0.28);
+    box-shadow: none !important;
 }
 
 StEntry.simple-taskbar-windows-start-search.simple-taskbar-windows-start-search-passive:focus {
@@ -1602,7 +1603,8 @@ StEntry.simple-taskbar-windows-start-search.simple-taskbar-windows-start-search-
 }
 
 .simple-taskbar-windows-start-light .simple-taskbar-windows-start-search:focus {
-    border-color: rgba(24, 119, 201, 0.72);
+    border-color: rgba(0, 0, 0, 0.24);
+    box-shadow: none !important;
 }
 
 .simple-taskbar-windows-start-light .simple-taskbar-windows-start-search-passive:focus {
@@ -2812,6 +2814,14 @@ StEntry.simple-taskbar-windows-start-search.simple-taskbar-windows-start-search-
     border-radius: 16px;
 }
 
+.simple-taskbar-windows-start-menu.simple-taskbar-spotlight.simple-taskbar-windows-start-light .popup-menu-content {
+    background-color: rgba(249, 250, 253, 0.78);
+}
+
+.simple-taskbar-windows-start-menu.simple-taskbar-spotlight.simple-taskbar-windows-start-dark .popup-menu-content {
+    background-color: rgba(34, 34, 38, 0.78);
+}
+
 .simple-taskbar-spotlight .simple-taskbar-windows-start-search {
     height: 48px;
     margin: 10px;
@@ -2834,4 +2844,557 @@ StEntry.simple-taskbar-windows-start-search.simple-taskbar-windows-start-search-
 
 .simple-taskbar-spotlight .simple-taskbar-windows-start-empty {
     padding: 40px 0;
+}
+
+.simple-taskbar-spotlight-badges-scroll {
+    padding: 8px 10px 14px;
+    margin-bottom: 8px;
+}
+
+.simple-taskbar-spotlight-badges {
+    spacing: 6px;
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-spotlight-badges-scroll {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-spotlight-badges-scroll {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.simple-taskbar-spotlight-badge {
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-spotlight-badge {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #e4e4e7;
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-spotlight-badge:hover,
+.simple-taskbar-windows-start-dark .simple-taskbar-spotlight-badge:focus {
+    background-color: rgba(255, 255, 255, 0.14);
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-spotlight-badge-active {
+    background-color: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #ffffff;
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-spotlight-badge {
+    background-color: rgba(0, 0, 0, 0.06);
+    color: #242427;
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-spotlight-badge:hover,
+.simple-taskbar-windows-start-light .simple-taskbar-spotlight-badge:focus {
+    background-color: rgba(0, 0, 0, 0.11);
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-spotlight-badge-active {
+    background-color: rgba(0, 0, 0, 0.16);
+    border-color: rgba(0, 0, 0, 0.2);
+    color: #111113;
+}
+
+/* Windows 10 Start Menu Layout */
+
+.simple-taskbar-windows-start-menu.simple-taskbar-win10-layout .popup-menu-content {
+    border-radius: 0;
+    padding: 0;
+}
+
+.simple-taskbar-win10-layout .simple-taskbar-windows-start {
+    padding: 10px 10px 8px 0;
+}
+
+.simple-taskbar-win10-layout .simple-taskbar-windows-start-search {
+    border-radius: 0;
+    margin: 0 4px 8px 10px;
+}
+
+.simple-taskbar-win10-layout .simple-taskbar-windows-start-scroll {
+    width: 248px;
+    padding: 0 6px 4px 4px;
+}
+
+.simple-taskbar-win10-layout .simple-taskbar-windows-start-app-list-button {
+    border-radius: 0;
+    padding: 5px 8px;
+}
+
+.simple-taskbar-win10-alpha-header-button {
+    border-radius: 0;
+    padding: 0;
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-win10-alpha-header-button:hover,
+.simple-taskbar-windows-start-dark .simple-taskbar-win10-alpha-header-button:focus {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win10-alpha-header-button:hover,
+.simple-taskbar-windows-start-light .simple-taskbar-win10-alpha-header-button:focus {
+    background-color: rgba(0, 0, 0, 0.07);
+}
+
+.simple-taskbar-win10-alpha-header {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 10px 3px;
+}
+
+.simple-taskbar-win10-alpha-picker {
+    background-color: rgba(14, 16, 20, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 16px 12px;
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win10-alpha-picker {
+    background-color: rgba(244, 246, 250, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.simple-taskbar-win10-alpha-grid,
+.simple-taskbar-win10-alpha-row {
+    spacing: 6px;
+}
+
+.simple-taskbar-win10-alpha-cell,
+.simple-taskbar-win10-alpha-cell-spacer {
+    width: 44px;
+    height: 44px;
+    border-radius: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #f4f4f4;
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win10-alpha-cell {
+    color: #18191b;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win10-alpha-cell:hover,
+.simple-taskbar-windows-start-light .simple-taskbar-win10-alpha-cell:focus {
+    background-color: rgba(0, 0, 0, 0.11);
+    border-color: rgba(0, 0, 0, 0.28);
+}
+
+.simple-taskbar-win10-alpha-cell {
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid transparent;
+}
+
+.simple-taskbar-win10-alpha-cell:hover,
+.simple-taskbar-win10-alpha-cell:focus {
+    background-color: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.38);
+}
+
+.simple-taskbar-win10-alpha-cell-disabled {
+    background-color: transparent;
+    color: rgba(255, 255, 255, 0.24);
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win10-alpha-cell-disabled {
+    background-color: transparent;
+    color: rgba(0, 0, 0, 0.24);
+}
+
+/* Windows 11 Left-Side Weather Widget */
+
+.simple-taskbar-win11-weather-button {
+    border-radius: 6px;
+    padding: 2px 10px;
+    margin: 3px 4px;
+}
+
+.simple-taskbar-win11-weather-content {
+    spacing: 8px;
+}
+
+.simple-taskbar-win11-weather-labels {
+    spacing: 0;
+}
+
+.simple-taskbar-win11-weather-temp {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.simple-taskbar-win11-weather-sky {
+    font-size: 10px;
+    opacity: 0.78;
+    max-width: 110px;
+}
+
+/* Windows 11 Search Pill & Dedicated Search Panel */
+
+.simple-taskbar-win11-search-pill {
+    border-radius: 999px;
+    padding: 0 14px 0 12px;
+    margin: 4px 6px 4px 4px;
+    height: 30px;
+    min-width: 148px;
+}
+
+.simple-taskbar-win11-search-pill-dark {
+    color: #f4f4f4;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.simple-taskbar-win11-search-pill-dark:hover,
+.simple-taskbar-win11-search-pill-dark:focus {
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+.simple-taskbar-win11-search-pill-light {
+    color: #18191b;
+    background-color: rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.simple-taskbar-win11-search-pill-light:hover,
+.simple-taskbar-win11-search-pill-light:focus {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.simple-taskbar-win11-search-pill.simple-taskbar-win10-search-box {
+    border-radius: 0;
+    margin: 4px 4px 4px 0;
+    padding: 0 14px 0 12px;
+    height: 36px;
+    min-width: 190px;
+}
+
+.simple-taskbar-win11-search-pill-dark.simple-taskbar-win10-search-box {
+    background-color: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.simple-taskbar-win11-search-pill-dark.simple-taskbar-win10-search-box:hover,
+.simple-taskbar-win11-search-pill-dark.simple-taskbar-win10-search-box:focus {
+    background-color: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+.simple-taskbar-win11-search-pill-light.simple-taskbar-win10-search-box {
+    background-color: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(0, 0, 0, 0.16);
+}
+
+.simple-taskbar-win11-search-pill-light.simple-taskbar-win10-search-box:hover,
+.simple-taskbar-win11-search-pill-light.simple-taskbar-win10-search-box:focus {
+    background-color: rgba(255, 255, 255, 0.96);
+    border-color: rgba(0, 0, 0, 0.28);
+}
+
+.simple-taskbar-win11-search-panel.simple-taskbar-win10-layout .popup-menu-content {
+    border-radius: 0;
+}
+
+.simple-taskbar-win11-search-panel .popup-menu-content {
+    border-radius: 12px;
+}
+
+.simple-taskbar-win11-search-panel .simple-taskbar-windows-start-search {
+    border-radius: 8px;
+    margin: 0;
+}
+
+.simple-taskbar-win11-search-panel.simple-taskbar-win10-layout
+    .simple-taskbar-windows-start-search {
+    border-radius: 0;
+}
+
+.simple-taskbar-win11-search-pill-content {
+    spacing: 8px;
+}
+
+.simple-taskbar-win11-search-pill-label {
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+.simple-taskbar-win11-search-root {
+    padding: 12px 14px;
+    spacing: 10px;
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win11-search-root {
+    color: #18191b;
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-win11-search-root {
+    color: #f4f4f4;
+}
+
+.simple-taskbar-win11-search-columns {
+    spacing: 12px;
+}
+
+.simple-taskbar-win11-search-web-scroll {
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    padding-left: 12px;
+}
+
+.simple-taskbar-win11-search-web-scroll.simple-taskbar-win11-search-web-full {
+    border-left: 0;
+    padding-left: 0;
+}
+
+.simple-taskbar-win11-search-answer-card {
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 2px 0 6px;
+    border: 1px solid transparent;
+}
+
+.simple-taskbar-win10-layout .simple-taskbar-win11-search-answer-card {
+    border-radius: 0;
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-win11-search-answer-card {
+    background-color: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.09);
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win11-search-answer-card {
+    background-color: rgba(0, 0, 0, 0.045);
+    border-color: rgba(0, 0, 0, 0.09);
+}
+
+.simple-taskbar-win11-search-answer-card-content {
+    spacing: 4px;
+}
+
+.simple-taskbar-win11-search-answer-title {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.simple-taskbar-win11-search-answer-body {
+    font-size: 11.5px;
+    opacity: 0.85;
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win11-search-web-scroll {
+    border-left-color: rgba(0, 0, 0, 0.1);
+}
+
+.simple-taskbar-win11-search-column {
+    spacing: 4px;
+}
+
+.simple-taskbar-win11-search-result-row {
+    spacing: 10px;
+}
+
+.simple-taskbar-win11-search-top-apps,
+.simple-taskbar-win11-search-top-apps-row {
+    spacing: 8px;
+}
+
+.simple-taskbar-win11-search-top-apps {
+    padding: 4px 0 8px;
+}
+
+.simple-taskbar-win11-search-top-app-content {
+    spacing: 6px;
+}
+
+.simple-taskbar-win11-search-top-app-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.simple-taskbar-win11-search-top-app-btn {
+    border-radius: 8px;
+    border: 1px solid transparent;
+    padding: 8px 6px;
+}
+
+.simple-taskbar-win10-layout .simple-taskbar-win11-search-top-app-btn {
+    border-radius: 0;
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-win11-search-top-app-btn {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-win11-search-top-app-btn:hover,
+.simple-taskbar-windows-start-dark .simple-taskbar-win11-search-top-app-btn:focus {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win11-search-top-app-btn {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win11-search-top-app-btn:hover,
+.simple-taskbar-windows-start-light .simple-taskbar-win11-search-top-app-btn:focus {
+    background-color: rgba(0, 0, 0, 0.09);
+    border-color: rgba(0, 0, 0, 0.14);
+}
+
+.simple-taskbar-win11-search-hint {
+    font-size: 12px;
+    opacity: 0.7;
+    padding: 8px 4px;
+}
+
+.simple-taskbar-win10-rail {
+    padding: 2px 0;
+    margin-right: 4px;
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-win10-rail-expanded {
+    background-color: rgba(32, 32, 36, 0.96);
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.35);
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win10-rail-expanded {
+    background-color: rgba(242, 244, 248, 0.96);
+    border-right: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.15);
+}
+
+.simple-taskbar-windows-start-shell .simple-taskbar-win10-rail-expanded {
+    background-color: rgba(36, 36, 40, 0.96);
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.35);
+}
+
+.simple-taskbar-win10-rail-button {
+    border-radius: 0;
+    padding: 0;
+    color: inherit;
+}
+
+.simple-taskbar-win10-rail-expand .simple-taskbar-win10-rail-label {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.simple-taskbar-win10-rail-label {
+    font-size: 13px;
+    padding-right: 12px;
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-win10-rail-button:hover,
+.simple-taskbar-windows-start-dark .simple-taskbar-win10-rail-button:focus {
+    background-color: rgba(255, 255, 255, 0.11);
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win10-rail-button:hover,
+.simple-taskbar-windows-start-light .simple-taskbar-win10-rail-button:focus {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.simple-taskbar-win10-tiles-scroll {
+    padding: 0 4px 4px 8px;
+}
+
+.simple-taskbar-win10-tiles-content {
+    padding: 2px 2px 8px;
+}
+
+.simple-taskbar-win10-tile-group {
+    spacing: 6px;
+    margin-bottom: 14px;
+}
+
+.simple-taskbar-win10-group-header-button {
+    border-radius: 0;
+    padding: 2px 6px;
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-win10-group-header-button:hover,
+.simple-taskbar-windows-start-dark .simple-taskbar-win10-group-header-button:focus {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win10-group-header-button:hover,
+.simple-taskbar-windows-start-light .simple-taskbar-win10-group-header-button:focus {
+    background-color: rgba(0, 0, 0, 0.07);
+}
+
+.simple-taskbar-win10-group-header {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.simple-taskbar-win10-tile-grid,
+.simple-taskbar-win10-tile-row,
+.simple-taskbar-win10-small-cluster,
+.simple-taskbar-win10-small-cluster-row {
+    spacing: 4px;
+}
+
+.simple-taskbar-win10-tile {
+    border-radius: 0;
+    border: 1px solid transparent;
+    padding: 0;
+}
+
+.simple-taskbar-win10-tile-inner-medium {
+    padding: 8px 7px 6px;
+}
+
+.simple-taskbar-win10-tile-inner-wide {
+    padding: 8px 10px;
+    spacing: 10px;
+}
+
+.simple-taskbar-win10-tile-label {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.simple-taskbar-win10-tile-label-wide {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-win10-tile {
+    background-color: rgba(255, 255, 255, 0.09);
+    color: #f4f4f4;
+}
+
+.simple-taskbar-windows-start-dark .simple-taskbar-win10-tile:hover,
+.simple-taskbar-windows-start-dark .simple-taskbar-win10-tile:focus {
+    background-color: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win10-tile {
+    background-color: rgba(0, 0, 0, 0.06);
+    color: #18191b;
+}
+
+.simple-taskbar-windows-start-light .simple-taskbar-win10-tile:hover,
+.simple-taskbar-windows-start-light .simple-taskbar-win10-tile:focus {
+    background-color: rgba(0, 0, 0, 0.11);
+    border-color: rgba(0, 0, 0, 0.28);
+}
+
+.simple-taskbar-windows-start-shell .simple-taskbar-win10-tile {
+    background-color: rgba(255, 255, 255, 0.09);
+}
+
+.simple-taskbar-windows-start-shell .simple-taskbar-win10-tile:hover,
+.simple-taskbar-windows-start-shell .simple-taskbar-win10-tile:focus {
+    background-color: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.35);
 }

@@ -19,8 +19,16 @@ function _luminance(color) {
         0.114 * color.blue) / 255;
 }
 
-// Popup menus reflect the Shell palette more reliably than the panel.
+// Popup menus reflect the Shell palette more reliably than the panel,
+// while St.Settings.color_scheme tracks GNOME's Light/Dark Appearance toggle.
 export function shellMenusUseLightTheme() {
+    const colorScheme = St.Settings.get().color_scheme;
+    if (colorScheme === St.SystemColorScheme.PREFER_DARK)
+        return false;
+    if (colorScheme === St.SystemColorScheme.DEFAULT ||
+        colorScheme === St.SystemColorScheme.PREFER_LIGHT)
+        return true;
+
     const probeMenu = new St.BoxLayout({style_class: 'popup-menu'});
     const probeContent = new St.BoxLayout({style_class: 'popup-menu-content'});
     probeMenu.add_child(probeContent);
