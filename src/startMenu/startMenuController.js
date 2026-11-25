@@ -81,9 +81,18 @@ const MENU_MIN_HEIGHT = 420;
 const MENU_BASE_HEIGHT = 610;
 const MENU_MAX_HEIGHT = 810;
 const MENU_MONITOR_MARGIN = 96;
-const SPOTLIGHT_WIDTH = 680;
-const SPOTLIGHT_HEIGHT = 480;
-const SPOTLIGHT_TOP_RATIO = 0.22;
+const SPOTLIGHT_MIN_WIDTH = 680;
+const SPOTLIGHT_MAX_WIDTH = 1120;
+const SPOTLIGHT_WIDTH_RATIO = 0.52;
+const SPOTLIGHT_MIN_HEIGHT = 480;
+const SPOTLIGHT_MAX_HEIGHT = 760;
+const SPOTLIGHT_HEIGHT_RATIO = 0.62;
+const SPOTLIGHT_TOP_RATIO = 0.15;
+const SPOTLIGHT_GRID_MIN_COLUMNS = 5;
+const SPOTLIGHT_GRID_MAX_COLUMNS = 8;
+const SPOTLIGHT_GRID_TARGET_TILE_WIDTH = 128;
+const SPOTLIGHT_GRID_ROW_SPACING = 5;
+const SPOTLIGHT_GRID_HORIZONTAL_CHROME = 24;
 const SPOTLIGHT_CLASS = 'simple-taskbar-spotlight';
 const ALPHA_PICKER_KEYS = [
     '#', 'A', 'B', 'C',
@@ -1298,7 +1307,7 @@ export class StartMenuController {
 
         this._body.show();
         this._categorySidebarController.setVisible(false);
-        this._setScrollbarPolicy(true);
+        this._setScrollbarPolicy(false);
 
         const allApps = getAllApps(this._appSystem);
         const grouped = groupAppsByCategory(allApps);
@@ -1347,9 +1356,11 @@ export class StartMenuController {
         });
         badgeScroll.add_child(badgeBar);
         this._content.add_child(badgeScroll);
+        const {width: spotlightWidth} = this._spotlightDimensions(this._getMonitor());
+        const {columns, tileWidth} = this._spotlightGridMetrics(spotlightWidth);
         this._content.add_child(this._pinnedViewBuilder.createAppGrid(visibleApps, {
-            columns: 5,
-            tileWidth: 124,
+            columns,
+            tileWidth,
             iconSize: 48,
             showTitle: true,
         }));
@@ -1766,13 +1777,63 @@ export class StartMenuController {
         this._setRootSize(width, height);
     }
 
-    _updateSpotlightSize(monitor) {
-        const width = Math.min(SPOTLIGHT_WIDTH, monitor.width - 32);
+    _spotlightDimensions(monitor) {
+        if (!monitor) {
+            return {
+                width: SPOTLIGHT_MIN_WIDTH,
+                height: this._body.visible ? SPOTLIGHT_MIN_HEIGHT : 0,
+            };
+        }
+        const width = Math.min(
+            monitor.width - 32,
+            Math.max(
+                SPOTLIGHT_MIN_WIDTH,
+                Math.min(
+                    SPOTLIGHT_MAX_WIDTH,
+                    Math.round(monitor.width * SPOTLIGHT_WIDTH_RATIO)
+                )
+            )
+        );
         const available = monitor.height * (1 - SPOTLIGHT_TOP_RATIO) -
             MENU_MONITOR_MARGIN;
         const height = this._body.visible
-            ? Math.round(Math.min(SPOTLIGHT_HEIGHT, available))
+            ? Math.round(Math.min(
+                available,
+                Math.max(
+                    SPOTLIGHT_MIN_HEIGHT,
+                    Math.min(
+                        SPOTLIGHT_MAX_HEIGHT,
+                        Math.round(monitor.height * SPOTLIGHT_HEIGHT_RATIO)
+                    )
+                )
+            ))
             : 0;
+        return {width, height};
+    }
+
+    _spotlightGridMetrics(spotlightWidth) {
+        const innerWidth = Math.max(
+            320,
+            spotlightWidth - SPOTLIGHT_GRID_HORIZONTAL_CHROME
+        );
+        const columns = Math.max(
+            SPOTLIGHT_GRID_MIN_COLUMNS,
+            Math.min(
+                SPOTLIGHT_GRID_MAX_COLUMNS,
+                Math.floor(
+                    (innerWidth + SPOTLIGHT_GRID_ROW_SPACING) /
+                    (SPOTLIGHT_GRID_TARGET_TILE_WIDTH + SPOTLIGHT_GRID_ROW_SPACING)
+                )
+            )
+        );
+        const tileWidth = Math.floor(
+            (innerWidth - (columns - 1) * SPOTLIGHT_GRID_ROW_SPACING) / columns
+        );
+        return {columns, tileWidth};
+    }
+
+    _updateSpotlightSize(monitor) {
+        const {width, height} = this._spotlightDimensions(monitor);
         this._setRootSize(width, height);
     }
 

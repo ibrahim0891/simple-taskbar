@@ -140,7 +140,7 @@ export class StartMenuPinnedViewBuilder {
             ? tileWidthOverride - 12
             : TILE_SURFACE_WIDTH;
         const surfaceHeight = iconSize > 32
-            ? TILE_SURFACE_HEIGHT + (iconSize - 32)
+            ? TILE_SURFACE_HEIGHT + (iconSize - 32) + 4
             : TILE_SURFACE_HEIGHT;
         const surface = new St.Bin({
             style_class: 'simple-taskbar-windows-start-app-surface',
@@ -193,7 +193,7 @@ export class StartMenuPinnedViewBuilder {
             reactive: true,
             can_focus: true,
             track_hover: true,
-            width: tileWidthOverride ?? this._tileWidth,
+            width: this._tileWidth,
             accessible_name: folder.name,
             child: content,
         });
