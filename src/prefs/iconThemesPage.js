@@ -11,7 +11,8 @@ import {gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions
 const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
 const ICON_THEME_KEY = 'icon-theme';
 const PREVIEW_LOOKUP_SIZE = 48;
-const PREVIEW_ICON_SIZE = 16;
+const PREVIEW_ICON_SIZE = 18;
+const PREVIEW_CARD_SIZE = 52;
 const PREVIEW_SLOT_CANDIDATES = [
     ['folder', 'inode-directory'],
     ['system-file-manager', 'org.gnome.Nautilus', 'org.gnome.Files', 'user-home'],
@@ -136,9 +137,20 @@ function discoverInstalledIconThemes() {
 }
 
 function createFolderPreview(themeName, scaleFactor, installed) {
+    // Outer wrapper adds the margin that add_prefix eats so the card is not clipped.
+    const wrapper = new Gtk.Box({
+        width_request: PREVIEW_CARD_SIZE + 8,
+        height_request: PREVIEW_CARD_SIZE,
+        hexpand: false,
+        vexpand: false,
+        halign: Gtk.Align.CENTER,
+        valign: Gtk.Align.CENTER,
+        margin_start: 4,
+    });
+
     const box = new Gtk.Box({
-        width_request: 42,
-        height_request: 42,
+        width_request: PREVIEW_CARD_SIZE,
+        height_request: PREVIEW_CARD_SIZE,
         hexpand: false,
         vexpand: false,
         halign: Gtk.Align.CENTER,
@@ -149,14 +161,15 @@ function createFolderPreview(themeName, scaleFactor, installed) {
     if (!installed) {
         box.append(new Gtk.Image({
             icon_name: 'folder-download-symbolic',
-            pixel_size: 20,
+            pixel_size: 24,
             hexpand: true,
             vexpand: true,
             halign: Gtk.Align.CENTER,
             valign: Gtk.Align.CENTER,
             css_classes: ['dim-label'],
         }));
-        return box;
+        wrapper.append(box);
+        return wrapper;
     }
 
     const previewTheme = Gtk.IconTheme.new();
@@ -172,10 +185,10 @@ function createFolderPreview(themeName, scaleFactor, installed) {
         valign: Gtk.Align.CENTER,
         hexpand: true,
         vexpand: true,
-        margin_top: 4,
-        margin_bottom: 4,
-        margin_start: 4,
-        margin_end: 4,
+        margin_top: 5,
+        margin_bottom: 5,
+        margin_start: 5,
+        margin_end: 5,
     });
 
     PREVIEW_SLOT_CANDIDATES.forEach((candidates, idx) => {
@@ -206,7 +219,8 @@ function createFolderPreview(themeName, scaleFactor, installed) {
     });
 
     box.append(grid);
-    return box;
+    wrapper.append(box);
+    return wrapper;
 }
 
 /**
