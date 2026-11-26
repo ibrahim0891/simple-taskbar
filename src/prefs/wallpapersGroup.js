@@ -99,7 +99,107 @@ function roundedClip(cr, width, height, radius) {
     cr.clip();
 }
 
-function createUniformThumbnail(filePath, width, height) {
+const MAX_CONCURRENT_THUMBS = 4;
+
+class ThumbnailLoader {
+    constructor() {
+        this._cache = new Map();
+        this._queue = [];
+        this._inFlight = 0;
+    }
+
+    clearCache() {
+        this._cache.clear();
+    }
+
+    destroy() {
+        this._queue = [];
+        this._cache.clear();
+    }
+
+    load(filePath, width, height, cancellable, onLoaded) {
+        const key = `${filePath}:${width}x${height}`;
+        const cached = this._cache.get(key);
+        if (cached) {
+            onLoaded(cached);
+            return;
+        }
+
+        this._queue.push({key, filePath, width, height, cancellable, onLoaded});
+        this._pump();
+    }
+
+    _pump() {
+        while (this._inFlight < MAX_CONCURRENT_THUMBS && this._queue.length > 0) {
+            const task = this._queue.shift();
+            if (task.cancellable?.is_cancelled())
+                continue;
+
+            const cached = this._cache.get(task.key);
+            if (cached) {
+                task.onLoaded(cached);
+                continue;
+            }
+
+            this._inFlight++;
+            this._decodeTask(task);
+        }
+    }
+
+    _decodeTask(task) {
+        const {key, filePath, width, height, cancellable, onLoaded} = task;
+        const finish = () => {
+            this._inFlight--;
+            this._pump();
+        };
+
+        Gio.File.new_for_path(filePath).read_async(
+            GLib.PRIORITY_DEFAULT_IDLE,
+            cancellable,
+            (file, readRes) => {
+                let stream = null;
+                try {
+                    stream = file.read_finish(readRes);
+                } catch {
+                    finish();
+                    return;
+                }
+
+                GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(
+                    stream,
+                    width * 2,
+                    height * 2,
+                    true,
+                    cancellable,
+                    (_src, pixRes) => {
+                        let pixbuf = null;
+                        try {
+                            const raw = GdkPixbuf.Pixbuf.new_from_stream_finish(pixRes);
+                            const scale = Math.max(width / raw.get_width(), height / raw.get_height());
+                            const scaledW = Math.max(width, Math.round(raw.get_width() * scale));
+                            const scaledH = Math.max(height, Math.round(raw.get_height() * scale));
+                            pixbuf = raw.scale_simple(scaledW, scaledH, GdkPixbuf.InterpType.BILINEAR);
+                            this._cache.set(key, pixbuf);
+                        } catch {
+                            pixbuf = null;
+                        } finally {
+                            try {
+                                stream.close(null);
+                            } catch {
+                                // Ignore stream close error.
+                            }
+                        }
+                        if (pixbuf && !cancellable?.is_cancelled())
+                            onLoaded(pixbuf);
+                        finish();
+                    }
+                );
+            }
+        );
+    }
+}
+
+function createUniformThumbnail(filePath, width, height, thumbnailLoader, cancellable) {
     const area = new Gtk.DrawingArea({
         width_request: width,
         height_request: height,
@@ -110,22 +210,10 @@ function createUniformThumbnail(filePath, width, height) {
     });
 
     let pixbuf = null;
-    if (filePath) {
-        try {
-            const raw = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                filePath,
-                width * 2,
-                height * 2,
-                true
-            );
-            const scale = Math.max(width / raw.get_width(), height / raw.get_height());
-            const scaledW = Math.max(width, Math.round(raw.get_width() * scale));
-            const scaledH = Math.max(height, Math.round(raw.get_height() * scale));
-            pixbuf = raw.scale_simple(scaledW, scaledH, GdkPixbuf.InterpType.BILINEAR);
-        } catch {
-            pixbuf = null;
-        }
-    }
+    let alive = true;
+    area.connect('destroy', () => {
+        alive = false;
+    });
 
     area.set_draw_func((_widget, cr, w, h) => {
         roundedClip(cr, w, h, THUMB_RADIUS);
@@ -140,8 +228,15 @@ function createUniformThumbnail(filePath, width, height) {
         }
     });
 
-    if (pixbuf)
+    if (filePath) {
+        thumbnailLoader.load(filePath, width, height, cancellable, loaded => {
+            if (!alive)
+                return;
+            pixbuf = loaded;
+            area.queue_draw();
+        });
         return area;
+    }
 
     const box = new Gtk.Overlay({
         width_request: width,
@@ -166,6 +261,8 @@ function createInteractiveThumbnail({
     filePath,
     width,
     height,
+    thumbnailLoader,
+    cancellable = null,
     active = false,
     onApply = null,
     onRemove = null,
@@ -179,7 +276,7 @@ function createInteractiveThumbnail({
         valign: Gtk.Align.CENTER,
     });
 
-    const thumb = createUniformThumbnail(filePath, width, height);
+    const thumb = createUniformThumbnail(filePath, width, height, thumbnailLoader, cancellable);
     if (onApply) {
         const clickButton = new Gtk.Button({
             child: thumb,
@@ -287,12 +384,25 @@ export function addWallpapersGroup({window, page, settings, extensionPath}) {
     let activeSubprocess = null;
     let activeCancellable = null;
     let pulseId = 0;
+    let syncIdleId = 0;
+    let installedPageOpen = false;
+    let installedDirty = true;
+    let installedThumbCancellable = null;
+    const packThumbCancellable = new Gio.Cancellable();
+    const thumbnailLoader = new ThumbnailLoader();
     const packRows = [];
 
     const stopPulse = () => {
         if (pulseId) {
             GLib.source_remove(pulseId);
             pulseId = 0;
+        }
+    };
+
+    const stopSyncIdle = () => {
+        if (syncIdleId) {
+            GLib.source_remove(syncIdleId);
+            syncIdleId = 0;
         }
     };
 
@@ -314,13 +424,15 @@ export function addWallpapersGroup({window, page, settings, extensionPath}) {
             filePath: previewPath,
             width: ROW_THUMB_WIDTH,
             height: ROW_THUMB_HEIGHT,
+            thumbnailLoader,
+            cancellable: packThumbCancellable,
             onApply: installed ? () => applyPackWallpaper(entry.pack) : null,
             onRemove: installed
                 ? () => {
                     deleteRecursive(
                         Gio.File.new_for_path(`${userBackgroundsDir()}/${entry.pack.id}`)
                     );
-                    syncAll();
+                    syncAll({invalidateCache: true});
                 }
                 : null,
         });
@@ -414,6 +526,10 @@ export function addWallpapersGroup({window, page, settings, extensionPath}) {
     });
 
     const rebuildInstalledWallpapers = () => {
+        installedDirty = false;
+        installedThumbCancellable?.cancel();
+        installedThumbCancellable = new Gio.Cancellable();
+
         let child;
         while ((child = flowBox.get_first_child()) !== null)
             flowBox.remove(child);
@@ -432,6 +548,8 @@ export function addWallpapersGroup({window, page, settings, extensionPath}) {
                 filePath: item.path,
                 width: GRID_THUMB_WIDTH,
                 height: GRID_THUMB_HEIGHT,
+                thumbnailLoader,
+                cancellable: installedThumbCancellable,
                 active,
                 onApply: () => {
                     backgroundSettings.set_string(PICTURE_URI_KEY, item.uri);
@@ -443,7 +561,7 @@ export function addWallpapersGroup({window, page, settings, extensionPath}) {
                 onRemove: item.isUserScope
                     ? () => {
                         deleteRecursive(Gio.File.new_for_path(item.path));
-                        syncAll();
+                        syncAll({invalidateCache: true});
                     }
                     : null,
             }));
@@ -457,10 +575,37 @@ export function addWallpapersGroup({window, page, settings, extensionPath}) {
         }
     };
 
-    const syncAll = () => {
+    const syncAll = ({invalidateCache = false} = {}) => {
+        if (invalidateCache)
+            thumbnailLoader.clearCache();
         syncPackRows();
-        rebuildInstalledWallpapers();
+        if (installedPageOpen)
+            rebuildInstalledWallpapers();
+        else
+            installedDirty = true;
     };
+
+    const scheduleSync = () => {
+        if (syncIdleId)
+            return;
+
+        syncIdleId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            syncIdleId = 0;
+            syncAll();
+            return GLib.SOURCE_REMOVE;
+        });
+    };
+
+    installedSubpage.connect('showing', () => {
+        installedPageOpen = true;
+        if (installedDirty)
+            rebuildInstalledWallpapers();
+    });
+    installedSubpage.connect('hidden', () => {
+        installedPageOpen = false;
+        installedThumbCancellable?.cancel();
+        installedThumbCancellable = null;
+    });
 
     const readStreamLines = (stream, cancellable) => {
         stream.read_line_async(GLib.PRIORITY_DEFAULT, cancellable, (source, res) => {
@@ -517,7 +662,7 @@ export function addWallpapersGroup({window, page, settings, extensionPath}) {
                 stopPulse();
                 activeSubprocess = null;
                 activeCancellable = null;
-                syncAll();
+                syncAll({invalidateCache: true});
 
                 if (success) {
                     window.add_toast(new Adw.Toast({
@@ -545,7 +690,7 @@ export function addWallpapersGroup({window, page, settings, extensionPath}) {
         activeCancellable?.cancel();
     });
 
-    refreshButton.connect('clicked', syncAll);
+    refreshButton.connect('clicked', () => syncAll({invalidateCache: true}));
 
     for (const pack of getWallpaperPacks()) {
         const row = new Adw.ActionRow({
@@ -602,11 +747,16 @@ export function addWallpapersGroup({window, page, settings, extensionPath}) {
     group.add(preserveRow);
     group.add(installedNavRow);
 
-    const lightId = backgroundSettings.connect(`changed::${PICTURE_URI_KEY}`, syncAll);
-    const darkId = backgroundSettings.connect(`changed::${PICTURE_URI_DARK_KEY}`, syncAll);
-    const colorSchemeId = interfaceSettings?.connect(`changed::${COLOR_SCHEME_KEY}`, syncAll) ?? 0;
+    const lightId = backgroundSettings.connect(`changed::${PICTURE_URI_KEY}`, scheduleSync);
+    const darkId = backgroundSettings.connect(`changed::${PICTURE_URI_DARK_KEY}`, scheduleSync);
+    const colorSchemeId = interfaceSettings?.connect(`changed::${COLOR_SCHEME_KEY}`, scheduleSync) ?? 0;
     window.connect('close-request', () => {
         stopPulse();
+        stopSyncIdle();
+        packThumbCancellable.cancel();
+        installedThumbCancellable?.cancel();
+        installedThumbCancellable = null;
+        thumbnailLoader.destroy();
         backgroundSettings.disconnect(lightId);
         backgroundSettings.disconnect(darkId);
         if (colorSchemeId)

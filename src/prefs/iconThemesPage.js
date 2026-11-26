@@ -20,6 +20,7 @@ const PREVIEW_SLOT_CANDIDATES = [
     ['preferences-system', 'org.gnome.Settings', 'applications-system', 'emblem-system'],
 ];
 const IGNORED_THEME_DIRS = new Set(['default', 'hicolor', 'locolor']);
+const THEME_REBUILD_BATCH_SIZE = 6;
 
 function getIconPacks() {
     return [
@@ -276,6 +277,11 @@ export function addIconThemesGroups({window, page, settings, extensionPath}) {
     let activeSubprocess = null;
     let activeCancellable = null;
     let pulseId = 0;
+    let syncIdleId = 0;
+    let rebuildIdleId = 0;
+    let installedPageOpen = false;
+    let installedDirty = true;
+    let cachedInstalledThemes = null;
     const packRows = [];
     let installedRowWidgets = [];
 
@@ -283,6 +289,20 @@ export function addIconThemesGroups({window, page, settings, extensionPath}) {
         if (pulseId) {
             GLib.source_remove(pulseId);
             pulseId = 0;
+        }
+    };
+
+    const stopSyncIdle = () => {
+        if (syncIdleId) {
+            GLib.source_remove(syncIdleId);
+            syncIdleId = 0;
+        }
+    };
+
+    const stopRebuildIdle = () => {
+        if (rebuildIdleId) {
+            GLib.source_remove(rebuildIdleId);
+            rebuildIdleId = 0;
         }
     };
 
@@ -364,6 +384,8 @@ export function addIconThemesGroups({window, page, settings, extensionPath}) {
     });
 
     const rebuildInstalledThemes = () => {
+        stopRebuildIdle();
+        installedDirty = false;
         for (const row of installedRowWidgets)
             installedGroup.remove(row);
         installedRowWidgets = [];
@@ -371,36 +393,81 @@ export function addIconThemesGroups({window, page, settings, extensionPath}) {
         const currentTheme = interfaceSettings.get_string(ICON_THEME_KEY);
         installedNavRow.subtitle = _('Active: %s').format(currentTheme);
 
-        for (const theme of discoverInstalledIconThemes()) {
-            const active = currentTheme === theme.id;
-            const row = new Adw.ActionRow({
-                title: theme.name,
-                subtitle: active ? `${theme.scope} • ${_('Active')}` : theme.scope,
-            });
-            row.add_prefix(createFolderPreview(theme.id, scaleFactor, true));
+        cachedInstalledThemes ??= discoverInstalledIconThemes();
+        const themes = cachedInstalledThemes;
+        let index = 0;
 
-            const applyButton = new Gtk.Button({
-                label: active ? _('Active') : _('Apply'),
-                valign: Gtk.Align.CENTER,
-                sensitive: !active,
-            });
-            applyButton.connect('clicked', () => {
-                interfaceSettings.set_string(ICON_THEME_KEY, theme.id);
-                window.add_toast(new Adw.Toast({
-                    title: _('Applied %s icon theme').format(theme.name),
-                }));
-            });
-            row.add_suffix(applyButton);
+        const appendBatch = () => {
+            const end = Math.min(index + THEME_REBUILD_BATCH_SIZE, themes.length);
+            for (; index < end; index++) {
+                const theme = themes[index];
+                const active = currentTheme === theme.id;
+                const row = new Adw.ActionRow({
+                    title: theme.name,
+                    subtitle: active ? `${theme.scope} • ${_('Active')}` : theme.scope,
+                });
+                row.add_prefix(createFolderPreview(theme.id, scaleFactor, true));
 
-            installedGroup.add(row);
-            installedRowWidgets.push(row);
-        }
+                const applyButton = new Gtk.Button({
+                    label: active ? _('Active') : _('Apply'),
+                    valign: Gtk.Align.CENTER,
+                    sensitive: !active,
+                });
+                applyButton.connect('clicked', () => {
+                    interfaceSettings.set_string(ICON_THEME_KEY, theme.id);
+                    window.add_toast(new Adw.Toast({
+                        title: _('Applied %s icon theme').format(theme.name),
+                    }));
+                });
+                row.add_suffix(applyButton);
+
+                installedGroup.add(row);
+                installedRowWidgets.push(row);
+            }
+            if (index < themes.length)
+                return GLib.SOURCE_CONTINUE;
+
+            rebuildIdleId = 0;
+            return GLib.SOURCE_REMOVE;
+        };
+
+        if (themes.length > 0 && appendBatch() === GLib.SOURCE_CONTINUE)
+            rebuildIdleId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, appendBatch);
     };
 
-    const syncAll = () => {
+    const syncAll = ({invalidateCache = false} = {}) => {
+        if (invalidateCache)
+            cachedInstalledThemes = null;
         syncPackRows();
-        rebuildInstalledThemes();
+        installedNavRow.subtitle = _('Active: %s').format(
+            interfaceSettings.get_string(ICON_THEME_KEY)
+        );
+        if (installedPageOpen)
+            rebuildInstalledThemes();
+        else
+            installedDirty = true;
     };
+
+    const scheduleSync = () => {
+        if (syncIdleId)
+            return;
+
+        syncIdleId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            syncIdleId = 0;
+            syncAll();
+            return GLib.SOURCE_REMOVE;
+        });
+    };
+
+    installedSubpage.connect('showing', () => {
+        installedPageOpen = true;
+        if (installedDirty)
+            rebuildInstalledThemes();
+    });
+    installedSubpage.connect('hidden', () => {
+        installedPageOpen = false;
+        stopRebuildIdle();
+    });
 
     const readStreamLines = (stream, cancellable) => {
         stream.read_line_async(GLib.PRIORITY_DEFAULT, cancellable, (source, res) => {
@@ -457,7 +524,7 @@ export function addIconThemesGroups({window, page, settings, extensionPath}) {
                 stopPulse();
                 activeSubprocess = null;
                 activeCancellable = null;
-                syncAll();
+                syncAll({invalidateCache: true});
 
                 if (success) {
                     window.add_toast(new Adw.Toast({
@@ -485,7 +552,7 @@ export function addIconThemesGroups({window, page, settings, extensionPath}) {
         activeCancellable?.cancel();
     });
 
-    refreshButton.connect('clicked', syncAll);
+    refreshButton.connect('clicked', () => syncAll({invalidateCache: true}));
 
     for (const pack of getIconPacks()) {
         const row = new Adw.ActionRow({
@@ -542,10 +609,12 @@ export function addIconThemesGroups({window, page, settings, extensionPath}) {
 
     const interfaceSignalId = interfaceSettings.connect(
         `changed::${ICON_THEME_KEY}`,
-        syncAll
+        scheduleSync
     );
     window.connect('close-request', () => {
         stopPulse();
+        stopSyncIdle();
+        stopRebuildIdle();
         interfaceSettings.disconnect(interfaceSignalId);
         activeSubprocess?.force_exit();
         activeCancellable?.cancel();

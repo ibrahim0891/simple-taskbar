@@ -80,8 +80,10 @@ function syncPresetWallpaper(settings, currentMode, nextMode) {
         }
         const pair = pickPackWallpaperPair(targetPack);
         if (pair) {
-            backgroundSettings.set_string('picture-uri', pair.light.uri);
-            backgroundSettings.set_string('picture-uri-dark', pair.dark.uri);
+            if (backgroundSettings.get_string('picture-uri') !== pair.light.uri)
+                backgroundSettings.set_string('picture-uri', pair.light.uri);
+            if (backgroundSettings.get_string('picture-uri-dark') !== pair.dark.uri)
+                backgroundSettings.set_string('picture-uri-dark', pair.dark.uri);
         }
         return;
     }
@@ -89,9 +91,9 @@ function syncPresetWallpaper(settings, currentMode, nextMode) {
     const savedLight = settings.get_string('saved-wallpaper-uri');
     const savedDark = settings.get_string('saved-wallpaper-uri-dark');
     if (savedLight || savedDark) {
-        if (savedLight)
+        if (savedLight && backgroundSettings.get_string('picture-uri') !== savedLight)
             backgroundSettings.set_string('picture-uri', savedLight);
-        if (savedDark)
+        if (savedDark && backgroundSettings.get_string('picture-uri-dark') !== savedDark)
             backgroundSettings.set_string('picture-uri-dark', savedDark);
         settings.set_string('saved-wallpaper-uri', '');
         settings.set_string('saved-wallpaper-uri-dark', '');
@@ -127,14 +129,16 @@ function syncPresetIconTheme(settings, currentMode, nextMode) {
                 interfaceSettings.get_string('icon-theme')
             );
         }
-        if (isIconThemeInstalled(targetTheme))
+        if (isIconThemeInstalled(targetTheme) &&
+            interfaceSettings.get_string('icon-theme') !== targetTheme)
             interfaceSettings.set_string('icon-theme', targetTheme);
         return;
     }
 
     const savedTheme = settings.get_string('saved-icon-theme');
     if (savedTheme) {
-        if (isIconThemeInstalled(savedTheme))
+        if (isIconThemeInstalled(savedTheme) &&
+            interfaceSettings.get_string('icon-theme') !== savedTheme)
             interfaceSettings.set_string('icon-theme', savedTheme);
         settings.set_string('saved-icon-theme', '');
     }
@@ -606,18 +610,24 @@ function activateRestoredAxis(settings, domain, mode) {
 
 function applyAxisPositionChange(settings, domain, mode, position) {
     const currentAxis = settings.get_string(domain.activeAxisKey);
-    settings.set_boolean('panel-profile-transition', true);
-    settings.set_string(domain.positionKey, position);
-    const axis = domainAxis(settings, domain);
-    if (currentAxis !== axis) {
-        if (axisProfilesEnabled(settings, mode)) {
-            savePanelAxisSettings(settings, mode, currentAxis);
-            if (!restorePanelAxisSettings(settings, mode, axis))
-                applyInitialPanelAxisSettings(settings, mode, axis);
+    const outerTransition = settings.get_boolean('panel-profile-transition');
+    if (!outerTransition)
+        settings.set_boolean('panel-profile-transition', true);
+    try {
+        settings.set_string(domain.positionKey, position);
+        const axis = domainAxis(settings, domain);
+        if (currentAxis !== axis) {
+            if (axisProfilesEnabled(settings, mode)) {
+                savePanelAxisSettings(settings, mode, currentAxis);
+                if (!restorePanelAxisSettings(settings, mode, axis))
+                    applyInitialPanelAxisSettings(settings, mode, axis);
+            }
+            settings.set_string(domain.activeAxisKey, axis);
         }
-        settings.set_string(domain.activeAxisKey, axis);
+    } finally {
+        if (!outerTransition)
+            settings.set_boolean('panel-profile-transition', false);
     }
-    settings.set_boolean('panel-profile-transition', false);
 }
 
 function applyDefaultPanelSettings(settings) {
@@ -688,37 +698,43 @@ export function setPanelMode(settings, mode) {
         initializePanelAxisProfiles(settings);
 
     const currentMode = settings.get_string('active-panel-mode');
-    settings.set_boolean('panel-profile-transition', true);
-    if (currentMode !== mode) {
-        if (axisProfilesEnabled(settings, currentMode)) {
-            savePanelAxisSettings(
-                settings,
-                currentMode,
-                settings.get_string('active-panel-axis')
-            );
+    const outerTransition = settings.get_boolean('panel-profile-transition');
+    if (!outerTransition)
+        settings.set_boolean('panel-profile-transition', true);
+    try {
+        if (currentMode !== mode) {
+            if (axisProfilesEnabled(settings, currentMode)) {
+                savePanelAxisSettings(
+                    settings,
+                    currentMode,
+                    settings.get_string('active-panel-axis')
+                );
+            }
+            savePanelModeSettings(settings, currentMode);
+            if (isDockThemeMode(mode) && !isDockThemeMode(currentMode))
+                saveDockLayout(settings);
+            else if (!isDockThemeMode(mode) && isDockThemeMode(currentMode))
+                restoreDockLayout(settings);
+            setModeFlags(settings, mode);
+            if (!restorePanelModeSettings(settings, mode)) {
+                resetPanelModeSettings(settings, mode);
+                applyInitialPanelModeSettings(settings, mode);
+            }
+            settings.set_string('active-panel-mode', mode);
+            activateRestoredAxis(settings, PANEL_AXIS_DOMAIN, mode);
+            if (isDockThemeMode(mode))
+                activateRestoredAxis(settings, DOCK_AXIS_DOMAIN, mode);
+            syncPresetIconTheme(settings, currentMode, mode);
+            syncPresetWallpaper(settings, currentMode, mode);
+        } else {
+            setModeFlags(settings, mode);
         }
-        savePanelModeSettings(settings, currentMode);
-        if (isDockThemeMode(mode) && !isDockThemeMode(currentMode))
-            saveDockLayout(settings);
-        else if (!isDockThemeMode(mode) && isDockThemeMode(currentMode))
-            restoreDockLayout(settings);
-        setModeFlags(settings, mode);
-        if (!restorePanelModeSettings(settings, mode)) {
-            resetPanelModeSettings(settings, mode);
-            applyInitialPanelModeSettings(settings, mode);
-        }
-        settings.set_string('active-panel-mode', mode);
-        activateRestoredAxis(settings, PANEL_AXIS_DOMAIN, mode);
-        if (isDockThemeMode(mode))
-            activateRestoredAxis(settings, DOCK_AXIS_DOMAIN, mode);
-        syncPresetIconTheme(settings, currentMode, mode);
-        syncPresetWallpaper(settings, currentMode, mode);
-    } else {
-        setModeFlags(settings, mode);
+        disablePressureRevealForHotEdge(settings);
+        settings.set_boolean('panel-mode-profiles-initialized', true);
+    } finally {
+        if (!outerTransition)
+            settings.set_boolean('panel-profile-transition', false);
     }
-    disablePressureRevealForHotEdge(settings);
-    settings.set_boolean('panel-profile-transition', false);
-    settings.set_boolean('panel-mode-profiles-initialized', true);
 }
 
 export function initializePanelModeProfiles(settings) {

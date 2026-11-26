@@ -184,10 +184,15 @@ export function addPanelModeGroup({
             if (activeMode(settings) === mode)
                 return;
 
+            settings.set_boolean('panel-profile-transition', true);
             const modeSettings = createSettings();
             modeSettings.delay();
-            applyMode(modeSettings, mode);
-            modeSettings.apply();
+            try {
+                applyMode(modeSettings, mode);
+                modeSettings.apply();
+            } finally {
+                settings.set_boolean('panel-profile-transition', false);
+            }
         },
         connectSettings,
     });
@@ -237,6 +242,7 @@ export function addPanelModeGroup({
         'floating-island-theme-enabled',
         'windows-xp-theme-enabled',
         'windows-10-theme-enabled',
+        'windows-11-theme-enabled',
     ])
         connectSettings(settings, `changed::${key}`, syncModes);
     syncModes();

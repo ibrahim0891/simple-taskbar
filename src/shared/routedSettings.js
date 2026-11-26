@@ -18,28 +18,77 @@ function moveLegacyValues(legacySettings, routedSettings) {
     }
 }
 
-export function createRoutedSettings(mainSettings, legacySettings) {
+export function createRoutedSettings(mainSettings, legacySettings, options = {}) {
     const routes = SETTINGS_ROUTES.map(route => ({
         ...route,
         settings: mainSettings.get_child(route.schema),
     }));
-    const routedSettings = new RoutedSettings(mainSettings, routes);
+    const routedSettings = new RoutedSettings(mainSettings, routes, options);
     moveLegacyValues(legacySettings, routedSettings);
     return routedSettings;
 }
 
 class RoutedSettings {
-    constructor(mainSettings, routes) {
+    constructor(mainSettings, routes, {deferSignalsDuringTransition = false} = {}) {
         this.mainSettings = mainSettings;
         this._routes = routes;
         this._allSettings = [mainSettings, ...routes.map(route => route.settings)];
         this._connections = new Map();
         this._nextConnectionId = 1;
+        this._deferDuringTransition = deferSignalsDuringTransition;
+        this._transitionActive = deferSignalsDuringTransition &&
+            mainSettings.get_boolean('panel-profile-transition');
+        this._suppressedChange = false;
+        this._onTransitionEnd = null;
+        this._transitionSignalId = deferSignalsDuringTransition
+            ? mainSettings.connect('changed::panel-profile-transition', () => {
+                const active = mainSettings.get_boolean('panel-profile-transition');
+                if (active) {
+                    this._transitionActive = true;
+                    return;
+                }
+
+                const hadSuppressed = this._suppressedChange;
+                this._transitionActive = false;
+                this._suppressedChange = false;
+                if (hadSuppressed)
+                    this._onTransitionEnd?.();
+            })
+            : 0;
         this.settings_schema = {
             list_keys: () => this._allSettings.flatMap(settings =>
                 settings.settings_schema.list_keys()),
             has_key: key => this._target(key).settings_schema.has_key(key),
             get_key: key => this._target(key).settings_schema.get_key(key),
+        };
+    }
+
+    setTransitionEndHandler(handler) {
+        this._onTransitionEnd = handler;
+    }
+
+    destroy() {
+        if (this._transitionSignalId) {
+            this.mainSettings.disconnect(this._transitionSignalId);
+            this._transitionSignalId = 0;
+        }
+        this._onTransitionEnd = null;
+        this._suppressedChange = false;
+        this._transitionActive = false;
+    }
+
+    _wrapSignalHandler(signal, handler) {
+        if (!this._deferDuringTransition ||
+            !signal.startsWith('changed::') ||
+            signal === 'changed::panel-profile-transition')
+            return handler;
+
+        return (...args) => {
+            if (this._transitionActive) {
+                this._suppressedChange = true;
+                return;
+            }
+            return handler(...args);
         };
     }
 
@@ -131,8 +180,9 @@ class RoutedSettings {
 
     connect(signal, handler) {
         const id = this._nextConnectionId++;
+        const wrapped = this._wrapSignalHandler(signal, handler);
         this._connections.set(id, this._signalTargets(signal).map(settings =>
-            [settings, settings.connect(signal, handler)]));
+            [settings, settings.connect(signal, wrapped)]));
         return id;
     }
 
@@ -146,7 +196,7 @@ class RoutedSettings {
         const owner = args.pop();
         for (let index = 0; index < args.length; index += 2) {
             const signal = args[index];
-            const handler = args[index + 1];
+            const handler = this._wrapSignalHandler(signal, args[index + 1]);
             for (const settings of this._signalTargets(signal))
                 settings.connectObject(signal, handler, owner);
         }

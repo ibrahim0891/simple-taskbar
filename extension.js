@@ -78,10 +78,15 @@ export default class SimpleTaskbarExtension extends Extension {
         this._tracker = Shell.WindowTracker.get_default();
         this._favorites = AppFavorites.getAppFavorites();
         this._settings = createRoutedSettings(this.getSettings(),
-            this.getSettings(`${this.metadata['settings-schema']}.legacy`));
+            this.getSettings(`${this.metadata['settings-schema']}.legacy`),
+            {deferSignalsDuringTransition: true});
         restoreOverlayKey(this._settings);
         restoreInputSourceShortcut(this._settings);
         clearInterruptedProfileTransition(this._settings);
+        this._settings.setTransitionEndHandler(() => {
+            hidePanelBlur();
+            this._queueRebuild();
+        });
         this._switcherKeybindings = new SwitcherKeybindingRouter();
         this._extensionConflictController =
             new ExtensionConflictController(this._settings);
@@ -332,6 +337,7 @@ export default class SimpleTaskbarExtension extends Extension {
         this._appSystem = null;
         this._applicationSettings.destroy();
         this._applicationSettings = null;
+        this._settings.destroy();
         this._settings = null;
         this._panelHeight = null;
     }
