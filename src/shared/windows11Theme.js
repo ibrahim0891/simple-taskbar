@@ -39,9 +39,11 @@ export function applyWindows11ThemeDefaults(settings) {
     setInteger(settings, HIGHLIGHT_SIZE_SETTINGS.size, WINDOWS_11_BUTTON_SIZE);
     setBoolean(settings, HIGHLIGHT_LENGTH_SETTINGS.enabled, true);
     setInteger(settings, HIGHLIGHT_LENGTH_SETTINGS.size, WINDOWS_11_BUTTON_LENGTH);
-    setString(settings, 'running-indicator-style', 'metro');
+    setString(settings, 'running-indicator-style', 'dashes');
     setInteger(settings, 'running-indicator-size', WINDOWS_11_INDICATOR_SIZE);
     setBoolean(settings, 'running-indicator-full-length', false);
+    setBoolean(settings, 'custom-indicator-colors-enabled', false);
+    setBoolean(settings, 'match-icon-color', true);
     setString(settings, 'clock-style', 'windows');
     setString(settings, 'start-menu-style', 'windows-11');
     setBoolean(settings, 'windows-start-menu-enabled', true);

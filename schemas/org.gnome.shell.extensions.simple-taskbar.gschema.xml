@@ -1346,7 +1346,7 @@
       <summary>Open a Spotlight search bar with its own shortcut</summary>
     </key>
     <key name="spotlight-hotkey" type="as">
-      <default>['&lt;Super&gt;space']</default>
+      <default>['&lt;Alt&gt;space']</default>
       <summary>Shortcut that opens Spotlight</summary>
     </key>
     <key name="spotlight-displaced-input-source-keys" type="as">
