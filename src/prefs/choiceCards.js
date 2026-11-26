@@ -19,6 +19,8 @@ const WINDOWS_XP_BLUE = [0.14, 0.37, 0.86];
 const WINDOWS_XP_GREEN = [0.24, 0.6, 0.24];
 const WINDOWS_10_BAR = [0.05, 0.05, 0.06];
 const WINDOWS_10_START = [1, 1, 1];
+const UBUNTU_DOCK_BAR = [0.14, 0.14, 0.16];
+const UBUNTU_ORANGE = [0.91, 0.33, 0.13];
 
 export function roundedSegment(cr, x, y, width, height, startRadius, endRadius) {
     const start = Math.min(startRadius, width / 2, height / 2);
@@ -152,6 +154,45 @@ export function drawMacosDockMode(cr, width, height, palette) {
         setColor(cr, foreground, 0.3);
         cr.setLineWidth(0.8);
         cr.stroke();
+    });
+}
+
+export function drawUbuntuMode(cr, width, height, palette) {
+    drawScreen(cr, width, height, palette, (screen, foreground) => {
+        fillRectangle(cr, edgeRectangle(screen, 'top', PANEL_THICKNESS), foreground, 0.35);
+        const dock = {
+            x: screen.x,
+            y: screen.y + PANEL_THICKNESS,
+            width: BAR_THICKNESS,
+            height: screen.height - PANEL_THICKNESS,
+        };
+        fillRectangle(cr, dock, UBUNTU_DOCK_BAR, 0.9);
+        const indicatorSize = 2.5;
+        fillRectangle(
+            cr,
+            {
+                x: dock.x + 1.2,
+                y: dock.y + 5,
+                width: indicatorSize,
+                height: indicatorSize,
+            },
+            UBUNTU_ORANGE,
+            1,
+            indicatorSize / 2
+        );
+        const gridSize = 3.5;
+        fillRectangle(
+            cr,
+            {
+                x: dock.x + (dock.width - gridSize) / 2,
+                y: dock.y + dock.height - gridSize - 3,
+                width: gridSize,
+                height: gridSize,
+            },
+            [1, 1, 1],
+            0.85,
+            0.8
+        );
     });
 }
 

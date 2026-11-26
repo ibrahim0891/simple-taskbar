@@ -8,13 +8,14 @@ import {gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions
 import {addAppGridGroup} from './appGridGroup.js';
 import {addBottomHotEdgeGroup} from './bottomHotEdgeGroup.js';
 import {addFileManagerGroup} from './fileManagerGroup.js';
+import {addIconThemesGroups} from './iconThemesPage.js';
 import {addPanelModeGroup} from './panelModeGroup.js';
 import {addProfileTransferGroup} from './profileTransfer.js';
 import {addResetGroup} from './preferencesDialogs.js';
 import {addSettingsHub} from './settingsSubpage.js';
 import {addWindowSwitchingGroup} from './windowSwitchingGroup.js';
 
-export function addGeneralPage({window, settings, createSettings, connectSettings}) {
+export function addGeneralPage({window, settings, createSettings, connectSettings, extensionPath}) {
     const page = new Adw.PreferencesPage({
         title: _('General'),
         icon_name: 'preferences-system-symbolic',
@@ -22,6 +23,7 @@ export function addGeneralPage({window, settings, createSettings, connectSetting
     window.add(page);
 
     addPanelModeGroup({page, settings, createSettings, connectSettings});
+    addIconThemesGroups({window, page, settings, extensionPath});
     const subpages = addSettingsHub(window, page, [{
         title: _('Features'),
         rows: [

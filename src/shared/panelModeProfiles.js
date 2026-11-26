@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (C) 2026 sultech
 
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 import {DOCK_AUTO_HIDE_SETTINGS, disablePressureRevealForHotEdge} from './autoHideSettings.js';
@@ -20,11 +21,13 @@ import {
 import {applyWindows10ThemeDefaults} from './windows10Theme.js';
 import {applyWindows11ThemeDefaults} from './windows11Theme.js';
 import {applyMacosDockDefaults} from './macosDockTheme.js';
+import {applyUbuntuDockDefaults} from './ubuntuTheme.js';
 
 export const PANEL_MODE_TASKBAR = 'taskbar';
 export const PANEL_MODE_DEFAULT = 'default-panel';
 export const PANEL_MODE_DOCK = 'dock';
 export const PANEL_MODE_MACOS_DOCK = 'macos-dock';
+export const PANEL_MODE_UBUNTU = 'ubuntu';
 export const PANEL_MODE_WINDOWS_XP = 'windows-xp';
 export const PANEL_MODE_WINDOWS_10 = 'windows-10';
 export const PANEL_MODE_WINDOWS_11 = 'windows-11';
@@ -34,7 +37,61 @@ const THEME_MODES = new Set([
     PANEL_MODE_WINDOWS_10,
     PANEL_MODE_WINDOWS_11,
     PANEL_MODE_MACOS_DOCK,
+    PANEL_MODE_UBUNTU,
 ]);
+
+const PRESET_ICON_THEMES = new Map([
+    [PANEL_MODE_UBUNTU, 'Yaru'],
+    [PANEL_MODE_MACOS_DOCK, 'MacTahoe'],
+    [PANEL_MODE_WINDOWS_10, 'Win11'],
+    [PANEL_MODE_WINDOWS_11, 'Win11'],
+]);
+
+function isIconThemeInstalled(themeName) {
+    const searchDirs = [
+        `${GLib.get_user_data_dir()}/icons`,
+        ...GLib.get_system_data_dirs().map(dir => `${dir}/icons`),
+    ];
+    return searchDirs.some(dir =>
+        Gio.File.new_for_path(`${dir}/${themeName}/index.theme`).query_exists(null)
+    );
+}
+
+function syncPresetIconTheme(settings, currentMode, nextMode) {
+    if (currentMode === nextMode || settings.get_boolean('preserve-icon-theme'))
+        return;
+
+    let interfaceSettings;
+    try {
+        interfaceSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
+    } catch {
+        return;
+    }
+
+    const targetTheme = PRESET_ICON_THEMES.get(nextMode);
+    if (targetTheme) {
+        if (!PRESET_ICON_THEMES.has(currentMode) && !settings.get_string('saved-icon-theme')) {
+            settings.set_string(
+                'saved-icon-theme',
+                interfaceSettings.get_string('icon-theme')
+            );
+        }
+        if (isIconThemeInstalled(targetTheme))
+            interfaceSettings.set_string('icon-theme', targetTheme);
+        return;
+    }
+
+    const savedTheme = settings.get_string('saved-icon-theme');
+    if (savedTheme) {
+        if (isIconThemeInstalled(savedTheme))
+            interfaceSettings.set_string('icon-theme', savedTheme);
+        settings.set_string('saved-icon-theme', '');
+    }
+}
+
+function isDockThemeMode(mode) {
+    return mode === PANEL_MODE_MACOS_DOCK || mode === PANEL_MODE_UBUNTU;
+}
 
 export function isDefaultPanelWithoutDock(settings) {
     return settings.get_boolean('default-gnome-panel') &&
@@ -76,6 +133,10 @@ const PROFILE_KEYS = new Map([
     [PANEL_MODE_MACOS_DOCK, {
         settings: 'macos-dock-mode-settings',
         saved: 'macos-dock-mode-settings-saved',
+    }],
+    [PANEL_MODE_UBUNTU, {
+        settings: 'ubuntu-mode-settings',
+        saved: 'ubuntu-mode-settings-saved',
     }],
 ]);
 
@@ -168,6 +229,9 @@ const MODE_SETTING_KEYS = new Set([
     'windows-10-theme-enabled',
     'windows-11-theme-enabled',
     'macos-dock-theme-enabled',
+    'ubuntu-theme-enabled',
+    'preserve-icon-theme',
+    'saved-icon-theme',
     'start-menu-displaced-overlay-key',
     'start-menu-pinned-apps',
     'start-menu-tile-sizes',
@@ -298,8 +362,11 @@ function axisProfilesEnabled(settings, mode) {
 }
 
 export function activeDockMode(settings) {
-    return settings.get_boolean('macos-dock-theme-enabled')
-        ? PANEL_MODE_MACOS_DOCK : PANEL_MODE_DOCK;
+    if (settings.get_boolean('macos-dock-theme-enabled'))
+        return PANEL_MODE_MACOS_DOCK;
+    if (settings.get_boolean('ubuntu-theme-enabled'))
+        return PANEL_MODE_UBUNTU;
+    return PANEL_MODE_DOCK;
 }
 
 export function getRequestedPanelMode(settings) {
@@ -311,6 +378,8 @@ export function getRequestedPanelMode(settings) {
         return PANEL_MODE_WINDOWS_11;
     if (settings.get_boolean('macos-dock-theme-enabled'))
         return PANEL_MODE_MACOS_DOCK;
+    if (settings.get_boolean('ubuntu-theme-enabled'))
+        return PANEL_MODE_UBUNTU;
     if (settings.get_boolean('default-gnome-panel'))
         return PANEL_MODE_DEFAULT;
     return PANEL_MODE_TASKBAR;
@@ -319,7 +388,7 @@ export function getRequestedPanelMode(settings) {
 function panelModeSettingKeys(settings, mode) {
     return settings.settings_schema.list_keys().filter(key =>
         !MODE_SETTING_KEYS.has(key) ||
-        mode === PANEL_MODE_MACOS_DOCK && DOCK_LAYOUT_SETTING_KEYS.has(key));
+        isDockThemeMode(mode) && DOCK_LAYOUT_SETTING_KEYS.has(key));
 }
 
 function savedSettingValues(settings, keys) {
@@ -508,6 +577,9 @@ function applyInitialPanelModeSettings(settings, mode) {
     } else if (mode === PANEL_MODE_MACOS_DOCK) {
         applyDefaultPanelSettings(settings);
         applyMacosDockDefaults(settings);
+    } else if (mode === PANEL_MODE_UBUNTU) {
+        applyDefaultPanelSettings(settings);
+        applyUbuntuDockDefaults(settings);
     } else if (mode === PANEL_MODE_WINDOWS_10) {
         applyWindows10ThemeDefaults(settings);
     } else if (mode === PANEL_MODE_WINDOWS_11) {
@@ -522,7 +594,7 @@ function applyInitialPanelModeSettings(settings, mode) {
 function setModeFlags(settings, mode) {
     settings.set_boolean(
         'default-gnome-panel',
-        mode === PANEL_MODE_DEFAULT || mode === PANEL_MODE_MACOS_DOCK
+        mode === PANEL_MODE_DEFAULT || isDockThemeMode(mode)
     );
     settings.set_boolean(
         'windows-xp-theme-enabled',
@@ -537,7 +609,8 @@ function setModeFlags(settings, mode) {
         mode === PANEL_MODE_WINDOWS_11
     );
     settings.set_boolean('macos-dock-theme-enabled', mode === PANEL_MODE_MACOS_DOCK);
-    if (mode === PANEL_MODE_MACOS_DOCK)
+    settings.set_boolean('ubuntu-theme-enabled', mode === PANEL_MODE_UBUNTU);
+    if (isDockThemeMode(mode))
         settings.set_boolean('dock-mode', true);
     else if (mode !== PANEL_MODE_DEFAULT)
         settings.set_boolean('dock-mode', false);
@@ -560,9 +633,9 @@ export function setPanelMode(settings, mode) {
             );
         }
         savePanelModeSettings(settings, currentMode);
-        if (mode === PANEL_MODE_MACOS_DOCK)
+        if (isDockThemeMode(mode) && !isDockThemeMode(currentMode))
             saveDockLayout(settings);
-        else if (currentMode === PANEL_MODE_MACOS_DOCK)
+        else if (!isDockThemeMode(mode) && isDockThemeMode(currentMode))
             restoreDockLayout(settings);
         setModeFlags(settings, mode);
         if (!restorePanelModeSettings(settings, mode)) {
@@ -571,8 +644,9 @@ export function setPanelMode(settings, mode) {
         }
         settings.set_string('active-panel-mode', mode);
         activateRestoredAxis(settings, PANEL_AXIS_DOMAIN, mode);
-        if (mode === PANEL_MODE_MACOS_DOCK)
+        if (isDockThemeMode(mode))
             activateRestoredAxis(settings, DOCK_AXIS_DOMAIN, mode);
+        syncPresetIconTheme(settings, currentMode, mode);
     } else {
         setModeFlags(settings, mode);
     }

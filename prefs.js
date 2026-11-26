@@ -54,7 +54,13 @@ export default class SimpleTaskbarPreferences extends ExtensionPreferences {
             {value: 'right', label: _('Right')},
         ];
 
-        const generalPage = addGeneralPage({window, settings, createSettings, connectSettings});
+        const generalPage = addGeneralPage({
+            window,
+            settings,
+            createSettings,
+            connectSettings,
+            extensionPath: this.path,
+        });
 
         const taskbarPage = new Adw.PreferencesPage({
             title: _('Taskbar'),

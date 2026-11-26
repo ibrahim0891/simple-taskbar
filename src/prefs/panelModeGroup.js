@@ -11,6 +11,7 @@ import {
     PANEL_MODE_DOCK,
     PANEL_MODE_MACOS_DOCK,
     PANEL_MODE_TASKBAR,
+    PANEL_MODE_UBUNTU,
     PANEL_MODE_WINDOWS_10,
     PANEL_MODE_WINDOWS_11,
     PANEL_MODE_WINDOWS_XP,
@@ -25,6 +26,7 @@ import {
     drawDockMode,
     drawMacosDockMode,
     drawTaskbarMode,
+    drawUbuntuMode,
     drawWindows10Mode,
     drawWindows11Mode,
     drawWindowsXpMode,
@@ -39,7 +41,9 @@ const DOCK_DEFAULT_ICON_SPACING = 6;
 const DOCK_DEFAULT_START_BUTTON_PADDING = 2;
 
 function activeMode(settings) {
-    if (settings.get_boolean('dock-mode') || settings.get_boolean('macos-dock-theme-enabled'))
+    if (settings.get_boolean('dock-mode') ||
+        settings.get_boolean('macos-dock-theme-enabled') ||
+        settings.get_boolean('ubuntu-theme-enabled'))
         return activeDockMode(settings);
     return getRequestedPanelMode(settings);
 }
@@ -72,7 +76,7 @@ function applyMode(settings, mode) {
     }
 
     setPanelMode(settings, mode);
-    if (mode !== PANEL_MODE_MACOS_DOCK)
+    if (mode !== PANEL_MODE_MACOS_DOCK && mode !== PANEL_MODE_UBUNTU)
         settings.set_boolean('dock-mode', false);
 }
 
@@ -152,6 +156,14 @@ export function addPanelModeGroup({
             tooltip: _('macOS Dock Mode Options'),
             keys: DOCK_OVERVIEW_BEHAVIOR_KEYS,
         },
+        {
+            mode: PANEL_MODE_UBUNTU,
+            label: _('Ubuntu'),
+            draw: drawUbuntuMode,
+            subtitle: _('Keep the GNOME panel and show a left-edge Ubuntu-style Dock'),
+            tooltip: _('Ubuntu Mode Options'),
+            keys: DOCK_OVERVIEW_BEHAVIOR_KEYS,
+        },
     ];
 
     const cards = addChoiceCards(group, {
@@ -197,7 +209,9 @@ export function addPanelModeGroup({
         for (const [mode, {row}] of optionRows)
             row.visible = mode === current;
         const {row: defaultPanelRow, title, subtitle} = optionRows.get(PANEL_MODE_DEFAULT);
-        const dockPanel = current === PANEL_MODE_DOCK || current === PANEL_MODE_MACOS_DOCK;
+        const dockPanel = current === PANEL_MODE_DOCK ||
+            current === PANEL_MODE_MACOS_DOCK ||
+            current === PANEL_MODE_UBUNTU;
         defaultPanelRow.visible ||= dockPanel;
         defaultPanelRow.title = dockPanel ? _('GNOME Panel') : title;
         defaultPanelRow.subtitle = dockPanel
@@ -208,6 +222,7 @@ export function addPanelModeGroup({
         'default-gnome-panel',
         'dock-mode',
         'macos-dock-theme-enabled',
+        'ubuntu-theme-enabled',
         'windows-xp-theme-enabled',
         'windows-10-theme-enabled',
     ])
