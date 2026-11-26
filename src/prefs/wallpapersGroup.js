@@ -11,10 +11,17 @@ import Pango from 'gi://Pango';
 
 import {gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
+import {
+    collectWallpaperImages,
+    pickPackWallpaperPair,
+    userBackgroundsDir,
+} from '../shared/wallpaperPacks.js';
+
 const BACKGROUND_SCHEMA = 'org.gnome.desktop.background';
+const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
 const PICTURE_URI_KEY = 'picture-uri';
 const PICTURE_URI_DARK_KEY = 'picture-uri-dark';
-const IMAGE_EXT_RE = /\.(jpe?g|png|webp)$/i;
+const COLOR_SCHEME_KEY = 'color-scheme';
 const ROW_THUMB_WIDTH = 72;
 const ROW_THUMB_HEIGHT = 44;
 const GRID_THUMB_WIDTH = 168;
@@ -46,10 +53,6 @@ function getWallpaperPacks() {
     ];
 }
 
-function userBackgroundsDir() {
-    return `${GLib.get_user_data_dir()}/backgrounds`;
-}
-
 function backgroundSearchPaths() {
     const paths = [userBackgroundsDir()];
     for (const dir of GLib.get_system_data_dirs())
@@ -57,75 +60,11 @@ function backgroundSearchPaths() {
     return [...new Set(paths)];
 }
 
-function collectImages(dirPath, isUserScope, out) {
-    const dir = Gio.File.new_for_path(dirPath);
-    if (!dir.query_exists(null))
-        return;
-
-    let enumerator;
-    try {
-        enumerator = dir.enumerate_children(
-            'standard::name,standard::type',
-            Gio.FileQueryInfoFlags.NONE,
-            null
-        );
-    } catch {
-        return;
-    }
-
-    let info;
-    while ((info = enumerator.next_file(null)) !== null) {
-        const name = info.get_name();
-        const childPath = `${dirPath}/${name}`;
-        if (info.get_file_type() === Gio.FileType.DIRECTORY) {
-            collectImages(childPath, isUserScope, out);
-        } else if (info.get_file_type() === Gio.FileType.REGULAR && IMAGE_EXT_RE.test(name)) {
-            out.push({
-                path: childPath,
-                uri: Gio.File.new_for_path(childPath).get_uri(),
-                name,
-                isUserScope,
-            });
-        }
-    }
-    enumerator.close(null);
-}
-
-function listPackWallpapers(packId) {
-    const images = [];
-    collectImages(`${userBackgroundsDir()}/${packId}`, true, images);
-    return images.sort((a, b) => a.path.localeCompare(b.path));
-}
-
-function pickPackWallpaperPair(packId) {
-    const files = listPackWallpapers(packId);
-    if (files.length === 0)
-        return null;
-    if (packId === 'ubuntu') {
-        const purple = files.find(f => /ubuntu_colors/i.test(f.name)) ??
-            files.find(f => /purple/i.test(f.name)) ??
-            files[0];
-        return {light: purple, dark: purple};
-    }
-    if (packId === 'windows11') {
-        const light = files.find(f => /^img0\./i.test(f.name)) ?? files[0];
-        const dark = files.find(f => /^img19\./i.test(f.name)) ??
-            files.find(f => /dark|night/i.test(f.name)) ??
-            light;
-        return {light, dark};
-    }
-    const light = files.find(f => /light|day/i.test(f.name)) ??
-        files.find(f => !/dark|night/i.test(f.name)) ??
-        files[0];
-    const dark = files.find(f => /dark|night/i.test(f.name)) ?? light;
-    return {light, dark};
-}
-
 function discoverAllWallpapers() {
     const userDir = userBackgroundsDir();
     const images = [];
     for (const baseDir of backgroundSearchPaths())
-        collectImages(baseDir, baseDir === userDir, images);
+        collectWallpaperImages(baseDir, baseDir === userDir, images);
     return images.sort((a, b) =>
         a.name.localeCompare(b.name, undefined, {sensitivity: 'base'})
     );
@@ -306,6 +245,12 @@ function createInteractiveThumbnail({
  */
 export function addWallpapersGroup({window, page, settings, extensionPath}) {
     const backgroundSettings = new Gio.Settings({schema_id: BACKGROUND_SCHEMA});
+    let interfaceSettings = null;
+    try {
+        interfaceSettings = new Gio.Settings({schema_id: INTERFACE_SCHEMA});
+    } catch {
+        interfaceSettings = null;
+    }
     const scriptPath = `${extensionPath}/src/prefs/install-wallpaper.sh`;
 
     const group = new Adw.PreferencesGroup({
@@ -385,6 +330,7 @@ export function addWallpapersGroup({window, page, settings, extensionPath}) {
     const syncPackRows = () => {
         const currentLight = backgroundSettings.get_string(PICTURE_URI_KEY);
         const currentDark = backgroundSettings.get_string(PICTURE_URI_DARK_KEY);
+        const preferDark = interfaceSettings?.get_string(COLOR_SCHEME_KEY) === 'prefer-dark';
         const busy = activeSubprocess !== null;
         progressRow.visible = busy;
 
@@ -392,7 +338,8 @@ export function addWallpapersGroup({window, page, settings, extensionPath}) {
             const pair = pickPackWallpaperPair(entry.pack.id);
             const installed = pair !== null;
             const active = installed &&
-                (currentLight === pair.light.uri || currentDark === pair.dark.uri);
+                currentLight === pair.light.uri &&
+                currentDark === pair.dark.uri;
 
             if (active)
                 entry.row.subtitle = `${entry.pack.description} • ${_('Active')}`;
@@ -401,7 +348,9 @@ export function addWallpapersGroup({window, page, settings, extensionPath}) {
             else
                 entry.row.subtitle = entry.pack.description;
 
-            const previewPath = pair ? pair.light.path : null;
+            const previewPath = pair
+                ? (preferDark ? pair.dark.path : pair.light.path)
+                : null;
             if (entry.lastPreviewPath !== previewPath || entry.lastInstalled !== installed) {
                 setRowPreview(entry, previewPath, installed);
                 entry.lastPreviewPath = previewPath;
@@ -655,10 +604,13 @@ export function addWallpapersGroup({window, page, settings, extensionPath}) {
 
     const lightId = backgroundSettings.connect(`changed::${PICTURE_URI_KEY}`, syncAll);
     const darkId = backgroundSettings.connect(`changed::${PICTURE_URI_DARK_KEY}`, syncAll);
+    const colorSchemeId = interfaceSettings?.connect(`changed::${COLOR_SCHEME_KEY}`, syncAll) ?? 0;
     window.connect('close-request', () => {
         stopPulse();
         backgroundSettings.disconnect(lightId);
         backgroundSettings.disconnect(darkId);
+        if (colorSchemeId)
+            interfaceSettings.disconnect(colorSchemeId);
         activeSubprocess?.force_exit();
         activeCancellable?.cancel();
     });

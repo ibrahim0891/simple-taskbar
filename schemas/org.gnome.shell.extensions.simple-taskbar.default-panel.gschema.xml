@@ -243,7 +243,7 @@
         <choice value="raise-windows"/>
         <choice value="launch-new-instance"/>
       </choices>
-      <default>'toggle-spread'</default>
+      <default>'cycle-windows-minimize'</default>
       <summary>Action when a running application is clicked</summary>
     </key>
     <key name="default-panel-window-application-click-animation" type="s">

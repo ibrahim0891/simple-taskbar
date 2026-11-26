@@ -23,6 +23,7 @@ import {applyWindows11ThemeDefaults} from './windows11Theme.js';
 import {applyMacosDockDefaults} from './macosDockTheme.js';
 import {applyUbuntuDockDefaults} from './ubuntuTheme.js';
 import {applyFloatingIslandDefaults} from './floatingIslandTheme.js';
+import {pickPackWallpaperPair} from './wallpaperPacks.js';
 
 export const PANEL_MODE_TASKBAR = 'taskbar';
 export const PANEL_MODE_DEFAULT = 'default-panel';
@@ -60,74 +61,6 @@ const PRESET_WALLPAPER_PACKS = new Map([
     [PANEL_MODE_WINDOWS_11, 'windows11'],
 ]);
 
-function listPackWallpapers(packId) {
-    const dir = Gio.File.new_for_path(`${GLib.get_user_data_dir()}/backgrounds/${packId}`);
-    if (!dir.query_exists(null))
-        return [];
-
-    const files = [];
-    try {
-        const enumerator = dir.enumerate_children(
-            'standard::name,standard::type',
-            Gio.FileQueryInfoFlags.NONE,
-            null
-        );
-        let info;
-        while ((info = enumerator.next_file(null)) !== null) {
-            if (info.get_file_type() !== Gio.FileType.REGULAR)
-                continue;
-            const name = info.get_name();
-            if (/\.(jpe?g|png|webp)$/i.test(name))
-                files.push(`${dir.get_path()}/${name}`);
-        }
-        enumerator.close(null);
-    } catch {
-        return [];
-    }
-    return files.sort((a, b) => a.localeCompare(b));
-}
-
-function pickPackWallpaperPair(packId) {
-    if (packId === 'gnome-adwaita') {
-        const lightFile = Gio.File.new_for_path('/usr/share/backgrounds/gnome/adwaita-l.jpg');
-        const darkFile = Gio.File.new_for_path('/usr/share/backgrounds/gnome/adwaita-d.jpg');
-        if (!lightFile.query_exists(null) && !darkFile.query_exists(null))
-            return null;
-        const lightUri = (lightFile.query_exists(null) ? lightFile : darkFile).get_uri();
-        const darkUri = (darkFile.query_exists(null) ? darkFile : lightFile).get_uri();
-        return {lightUri, darkUri};
-    }
-
-    const files = listPackWallpapers(packId);
-    if (files.length === 0)
-        return null;
-    if (packId === 'ubuntu') {
-        const purple = files.find(f => /ubuntu_colors/i.test(f)) ??
-            files.find(f => /purple/i.test(f)) ??
-            files[0];
-        const uri = Gio.File.new_for_path(purple).get_uri();
-        return {lightUri: uri, darkUri: uri};
-    }
-    if (packId === 'windows11') {
-        const light = files.find(f => /\/img0\./i.test(f)) ?? files[0];
-        const dark = files.find(f => /\/img19\./i.test(f)) ??
-            files.find(f => /dark|night/i.test(f)) ??
-            light;
-        return {
-            lightUri: Gio.File.new_for_path(light).get_uri(),
-            darkUri: Gio.File.new_for_path(dark).get_uri(),
-        };
-    }
-    const light = files.find(f => /light|day/i.test(f)) ??
-        files.find(f => !/dark|night/i.test(f)) ??
-        files[0];
-    const dark = files.find(f => /dark|night/i.test(f)) ?? light;
-    return {
-        lightUri: Gio.File.new_for_path(light).get_uri(),
-        darkUri: Gio.File.new_for_path(dark).get_uri(),
-    };
-}
-
 function syncPresetWallpaper(settings, currentMode, nextMode) {
     if (currentMode === nextMode || settings.get_boolean('preserve-wallpaper'))
         return;
@@ -147,8 +80,8 @@ function syncPresetWallpaper(settings, currentMode, nextMode) {
         }
         const pair = pickPackWallpaperPair(targetPack);
         if (pair) {
-            backgroundSettings.set_string('picture-uri', pair.lightUri);
-            backgroundSettings.set_string('picture-uri-dark', pair.darkUri);
+            backgroundSettings.set_string('picture-uri', pair.light.uri);
+            backgroundSettings.set_string('picture-uri-dark', pair.dark.uri);
         }
         return;
     }
