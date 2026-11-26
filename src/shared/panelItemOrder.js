@@ -34,8 +34,8 @@ export const DEFAULT_PANEL_ITEM_ORDER = Object.freeze([
 ]);
 
 export const DEFAULT_DOCK_ITEM_ORDER = Object.freeze([
-    'start-button',
     'applications',
+    'start-button',
 ]);
 
 function normalizeItemOrder(order, defaultOrder, leadingItems = []) {

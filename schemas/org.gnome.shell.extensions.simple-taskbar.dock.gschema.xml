@@ -19,7 +19,7 @@
       <summary>Start the session on the desktop instead of the Overview in Dock mode</summary>
     </key>
     <key name="dock-item-order" type="as">
-      <default>['start-button', 'applications']</default>
+      <default>['applications', 'start-button']</default>
       <summary>Dock item order</summary>
     </key>
     <key name="dock-show-locations" type="b">
@@ -246,7 +246,7 @@
       <summary>Custom Dock gradient direction</summary>
     </key>
     <key name="dock-panel-theme-follow-system" type="b">
-      <default>false</default>
+      <default>true</default>
       <summary>Match the Dock to the active GNOME Shell theme</summary>
     </key>
     <key name="dock-panel-theme" type="s">

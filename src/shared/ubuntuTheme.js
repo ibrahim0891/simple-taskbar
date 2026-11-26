@@ -28,8 +28,9 @@ export function applyUbuntuDockDefaults(settings) {
     settings.set_string('start-button-position', 'right');
     settings.set_boolean('use-pinned-apps-as-launchers', false);
     settings.set_boolean('show-pinned-app-separator', false);
-    settings.set_boolean('focused-app-visible', true);
+    settings.set_boolean('focused-app-visible', false);
     settings.set_boolean('spotlight-enabled', false);
+    settings.set_string('default-panel-clock-style', 'gnome');
     settings.set_string('window-minimize-effect', WINDOW_MINIMIZE_EFFECT.GNOME_DEFAULT);
     settings.set_string('animate-appicon-hover-animation-type', APP_ICON_HOVER_ANIMATION.NONE);
     settings.set_string('application-click-animation', APPLICATION_CLICK_ANIMATION.NONE);

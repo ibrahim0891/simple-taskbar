@@ -44,12 +44,126 @@ const THEME_MODES = new Set([
 ]);
 
 const PRESET_ICON_THEMES = new Map([
+    [PANEL_MODE_DEFAULT, 'Adwaita'],
     [PANEL_MODE_UBUNTU, 'Yaru'],
     [PANEL_MODE_MACOS_DOCK, 'MacTahoe'],
     [PANEL_MODE_WINDOWS_10, 'Win11'],
     [PANEL_MODE_WINDOWS_11, 'Win11'],
     [PANEL_MODE_FLOATING_ISLAND, 'Tela-circle'],
 ]);
+
+const PRESET_WALLPAPER_PACKS = new Map([
+    [PANEL_MODE_DEFAULT, 'gnome-adwaita'],
+    [PANEL_MODE_UBUNTU, 'ubuntu'],
+    [PANEL_MODE_MACOS_DOCK, 'mactahoe'],
+    [PANEL_MODE_WINDOWS_10, 'windows10'],
+    [PANEL_MODE_WINDOWS_11, 'windows11'],
+]);
+
+function listPackWallpapers(packId) {
+    const dir = Gio.File.new_for_path(`${GLib.get_user_data_dir()}/backgrounds/${packId}`);
+    if (!dir.query_exists(null))
+        return [];
+
+    const files = [];
+    try {
+        const enumerator = dir.enumerate_children(
+            'standard::name,standard::type',
+            Gio.FileQueryInfoFlags.NONE,
+            null
+        );
+        let info;
+        while ((info = enumerator.next_file(null)) !== null) {
+            if (info.get_file_type() !== Gio.FileType.REGULAR)
+                continue;
+            const name = info.get_name();
+            if (/\.(jpe?g|png|webp)$/i.test(name))
+                files.push(`${dir.get_path()}/${name}`);
+        }
+        enumerator.close(null);
+    } catch {
+        return [];
+    }
+    return files.sort((a, b) => a.localeCompare(b));
+}
+
+function pickPackWallpaperPair(packId) {
+    if (packId === 'gnome-adwaita') {
+        const lightFile = Gio.File.new_for_path('/usr/share/backgrounds/gnome/adwaita-l.jpg');
+        const darkFile = Gio.File.new_for_path('/usr/share/backgrounds/gnome/adwaita-d.jpg');
+        if (!lightFile.query_exists(null) && !darkFile.query_exists(null))
+            return null;
+        const lightUri = (lightFile.query_exists(null) ? lightFile : darkFile).get_uri();
+        const darkUri = (darkFile.query_exists(null) ? darkFile : lightFile).get_uri();
+        return {lightUri, darkUri};
+    }
+
+    const files = listPackWallpapers(packId);
+    if (files.length === 0)
+        return null;
+    if (packId === 'ubuntu') {
+        const purple = files.find(f => /ubuntu_colors/i.test(f)) ??
+            files.find(f => /purple/i.test(f)) ??
+            files[0];
+        const uri = Gio.File.new_for_path(purple).get_uri();
+        return {lightUri: uri, darkUri: uri};
+    }
+    if (packId === 'windows11') {
+        const light = files.find(f => /\/img0\./i.test(f)) ?? files[0];
+        const dark = files.find(f => /\/img19\./i.test(f)) ??
+            files.find(f => /dark|night/i.test(f)) ??
+            light;
+        return {
+            lightUri: Gio.File.new_for_path(light).get_uri(),
+            darkUri: Gio.File.new_for_path(dark).get_uri(),
+        };
+    }
+    const light = files.find(f => /light|day/i.test(f)) ??
+        files.find(f => !/dark|night/i.test(f)) ??
+        files[0];
+    const dark = files.find(f => /dark|night/i.test(f)) ?? light;
+    return {
+        lightUri: Gio.File.new_for_path(light).get_uri(),
+        darkUri: Gio.File.new_for_path(dark).get_uri(),
+    };
+}
+
+function syncPresetWallpaper(settings, currentMode, nextMode) {
+    if (currentMode === nextMode || settings.get_boolean('preserve-wallpaper'))
+        return;
+
+    let backgroundSettings;
+    try {
+        backgroundSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.background'});
+    } catch {
+        return;
+    }
+
+    const targetPack = PRESET_WALLPAPER_PACKS.get(nextMode);
+    if (targetPack) {
+        if (!PRESET_WALLPAPER_PACKS.has(currentMode) && !settings.get_string('saved-wallpaper-uri')) {
+            settings.set_string('saved-wallpaper-uri', backgroundSettings.get_string('picture-uri'));
+            settings.set_string('saved-wallpaper-uri-dark', backgroundSettings.get_string('picture-uri-dark'));
+        }
+        const pair = pickPackWallpaperPair(targetPack);
+        if (pair) {
+            backgroundSettings.set_string('picture-uri', pair.lightUri);
+            backgroundSettings.set_string('picture-uri-dark', pair.darkUri);
+        }
+        return;
+    }
+
+    const savedLight = settings.get_string('saved-wallpaper-uri');
+    const savedDark = settings.get_string('saved-wallpaper-uri-dark');
+    if (savedLight || savedDark) {
+        if (savedLight)
+            backgroundSettings.set_string('picture-uri', savedLight);
+        if (savedDark)
+            backgroundSettings.set_string('picture-uri-dark', savedDark);
+        settings.set_string('saved-wallpaper-uri', '');
+        settings.set_string('saved-wallpaper-uri-dark', '');
+    }
+}
 
 function isIconThemeInstalled(themeName) {
     const searchDirs = [
@@ -241,11 +355,12 @@ const MODE_SETTING_KEYS = new Set([
     'floating-island-theme-enabled',
     'preserve-icon-theme',
     'saved-icon-theme',
+    'preserve-wallpaper',
+    'saved-wallpaper-uri',
+    'saved-wallpaper-uri-dark',
     'start-menu-displaced-overlay-key',
     'start-menu-pinned-apps',
     'start-menu-tile-sizes',
-    'clock-style',
-    'default-panel-clock-style',
     'clock-date-order',
     'hot-edge-overview-enabled',
     'hot-edge-pressure-threshold',
@@ -577,6 +692,7 @@ function applyDefaultPanelSettings(settings) {
     settings.set_int('panel-button-padding', 12);
     settings.set_string('panel-position', 'top');
     settings.set_string('clock-position', 'center');
+    settings.set_string('default-panel-clock-style', 'gnome');
     settings.set_boolean('windows-start-menu-enabled', false);
     settings.set_boolean('gnome-start-button-visible', false);
     settings.set_boolean('show-desktop-button-visible', false);
@@ -663,6 +779,7 @@ export function setPanelMode(settings, mode) {
         if (isDockThemeMode(mode))
             activateRestoredAxis(settings, DOCK_AXIS_DOMAIN, mode);
         syncPresetIconTheme(settings, currentMode, mode);
+        syncPresetWallpaper(settings, currentMode, mode);
     } else {
         setModeFlags(settings, mode);
     }

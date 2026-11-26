@@ -13,6 +13,7 @@ import {addPanelModeGroup} from './panelModeGroup.js';
 import {addProfileTransferGroup} from './profileTransfer.js';
 import {addResetGroup} from './preferencesDialogs.js';
 import {addSettingsHub} from './settingsSubpage.js';
+import {addWallpapersGroup} from './wallpapersGroup.js';
 import {addWindowSwitchingGroup} from './windowSwitchingGroup.js';
 
 export function addGeneralPage({window, settings, createSettings, connectSettings, extensionPath}) {
@@ -24,6 +25,7 @@ export function addGeneralPage({window, settings, createSettings, connectSetting
 
     addPanelModeGroup({page, settings, createSettings, connectSettings});
     addIconThemesGroups({window, page, settings, extensionPath});
+    addWallpapersGroup({window, page, settings, extensionPath});
     const subpages = addSettingsHub(window, page, [{
         title: _('Features'),
         rows: [

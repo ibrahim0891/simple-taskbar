@@ -68,6 +68,7 @@ export function applyWindows10ThemeDefaults(settings) {
     setInteger(settings, 'start-button-padding', 0);
     setBoolean(settings, 'transparency-enabled', false);
     setBoolean(settings, 'activities-button-visible', false);
+    setString(settings, 'clock-style', 'windows');
     applyWindows10ThemeSettings(settings);
 }
 

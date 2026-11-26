@@ -60,6 +60,8 @@ function enableDockMode(settings) {
             DOCK_DEFAULT_START_BUTTON_PADDING
         );
         settings.set_string('dock-position', 'bottom');
+        settings.set_strv('dock-item-order', ['applications', 'start-button']);
+        settings.set_boolean('dock-panel-theme-follow-system', true);
         settings.set_boolean('windows-start-menu-enabled', false);
         settings.set_boolean('gnome-start-button-visible', true);
         settings.set_string('combine-app-buttons-mode', 'always');
