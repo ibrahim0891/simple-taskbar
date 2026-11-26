@@ -741,6 +741,18 @@
       <default>false</default>
       <summary>Whether Ubuntu Dock mode settings are saved</summary>
     </key>
+    <key name="floating-island-theme-enabled" type="b">
+      <default>false</default>
+      <summary>Use the Floating Island taskbar preset</summary>
+    </key>
+    <key name="floating-island-mode-settings" type="a{sv}">
+      <default>{}</default>
+      <summary>Settings saved for Floating Island mode</summary>
+    </key>
+    <key name="floating-island-mode-settings-saved" type="b">
+      <default>false</default>
+      <summary>Whether Floating Island mode settings are saved</summary>
+    </key>
     <key name="preserve-icon-theme" type="b">
       <default>false</default>
       <summary>Preserve current icon theme when switching presets</summary>
@@ -790,6 +802,7 @@
         <choice value="windows-11"/>
         <choice value="macos-dock"/>
         <choice value="ubuntu"/>
+        <choice value="floating-island"/>
       </choices>
       <default>'taskbar'</default>
       <summary>Panel mode whose settings are currently active</summary>

@@ -423,6 +423,73 @@
     -minimum-hpadding: 3px;
 }
 
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button:not(.clock-display),
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button.simple-taskbar-panel-button-highlight:not(.clock-display) {
+    background-color: rgba(255, 255, 255, 0.11);
+    border-radius: 999px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    margin-left: 2px;
+    margin-right: 2px;
+    -natural-hpadding: 8px;
+    -minimum-hpadding: 8px;
+}
+
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button:not(.clock-display):hover,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button:not(.clock-display):focus,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button:not(.clock-display):active,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button:not(.clock-display):checked,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button.simple-taskbar-panel-button-highlight:not(.clock-display):hover,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button.simple-taskbar-panel-button-highlight:not(.clock-display):focus,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button.simple-taskbar-panel-button-highlight:not(.clock-display):active,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button.simple-taskbar-panel-button-highlight:not(.clock-display):checked {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button.clock-display {
+    background-color: transparent;
+    margin-left: 2px;
+    margin-right: 0;
+    -natural-hpadding: 0;
+    -minimum-hpadding: 0;
+}
+
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button.clock-display .clock {
+    background-color: rgba(255, 255, 255, 0.11);
+    border-radius: 999px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    padding: 0 10px;
+}
+
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button.clock-display:hover .clock,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button.clock-display:focus .clock,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button.clock-display:active .clock,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island #panelRight .panel-button.clock-display:checked .clock {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button:not(.clock-display),
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button.simple-taskbar-panel-button-highlight:not(.clock-display),
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button.clock-display .clock {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button:not(.clock-display):hover,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button:not(.clock-display):focus,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button:not(.clock-display):active,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button:not(.clock-display):checked,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button.simple-taskbar-panel-button-highlight:not(.clock-display):hover,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button.simple-taskbar-panel-button-highlight:not(.clock-display):focus,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button.simple-taskbar-panel-button-highlight:not(.clock-display):active,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button.simple-taskbar-panel-button-highlight:not(.clock-display):checked,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button.clock-display:hover .clock,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button.clock-display:focus .clock,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button.clock-display:active .clock,
+#panel.simple-taskbar-panel.simple-taskbar-floating-island.simple-taskbar-theme-light #panelRight .panel-button.clock-display:checked .clock {
+    background-color: rgba(0, 0, 0, 0.14);
+}
+
 .simple-taskbar-panel-button-hover-inset-3 .panel-button,
 .simple-taskbar-windows-xp-theme.simple-taskbar-panel-button-hover-inset-3 .simple-taskbar-start,
 .simple-taskbar-panel-button-hover-inset-3 .panel-button.clock-display .clock {

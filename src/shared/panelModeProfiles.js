@@ -22,12 +22,14 @@ import {applyWindows10ThemeDefaults} from './windows10Theme.js';
 import {applyWindows11ThemeDefaults} from './windows11Theme.js';
 import {applyMacosDockDefaults} from './macosDockTheme.js';
 import {applyUbuntuDockDefaults} from './ubuntuTheme.js';
+import {applyFloatingIslandDefaults} from './floatingIslandTheme.js';
 
 export const PANEL_MODE_TASKBAR = 'taskbar';
 export const PANEL_MODE_DEFAULT = 'default-panel';
 export const PANEL_MODE_DOCK = 'dock';
 export const PANEL_MODE_MACOS_DOCK = 'macos-dock';
 export const PANEL_MODE_UBUNTU = 'ubuntu';
+export const PANEL_MODE_FLOATING_ISLAND = 'floating-island';
 export const PANEL_MODE_WINDOWS_XP = 'windows-xp';
 export const PANEL_MODE_WINDOWS_10 = 'windows-10';
 export const PANEL_MODE_WINDOWS_11 = 'windows-11';
@@ -38,6 +40,7 @@ const THEME_MODES = new Set([
     PANEL_MODE_WINDOWS_11,
     PANEL_MODE_MACOS_DOCK,
     PANEL_MODE_UBUNTU,
+    PANEL_MODE_FLOATING_ISLAND,
 ]);
 
 const PRESET_ICON_THEMES = new Map([
@@ -45,6 +48,7 @@ const PRESET_ICON_THEMES = new Map([
     [PANEL_MODE_MACOS_DOCK, 'MacTahoe'],
     [PANEL_MODE_WINDOWS_10, 'Win11'],
     [PANEL_MODE_WINDOWS_11, 'Win11'],
+    [PANEL_MODE_FLOATING_ISLAND, 'Tela-circle'],
 ]);
 
 function isIconThemeInstalled(themeName) {
@@ -138,6 +142,10 @@ const PROFILE_KEYS = new Map([
         settings: 'ubuntu-mode-settings',
         saved: 'ubuntu-mode-settings-saved',
     }],
+    [PANEL_MODE_FLOATING_ISLAND, {
+        settings: 'floating-island-mode-settings',
+        saved: 'floating-island-mode-settings-saved',
+    }],
 ]);
 
 const AXIS_PROFILE_KEYS = new Map([
@@ -230,6 +238,7 @@ const MODE_SETTING_KEYS = new Set([
     'windows-11-theme-enabled',
     'macos-dock-theme-enabled',
     'ubuntu-theme-enabled',
+    'floating-island-theme-enabled',
     'preserve-icon-theme',
     'saved-icon-theme',
     'start-menu-displaced-overlay-key',
@@ -366,6 +375,8 @@ export function activeDockMode(settings) {
         return PANEL_MODE_MACOS_DOCK;
     if (settings.get_boolean('ubuntu-theme-enabled'))
         return PANEL_MODE_UBUNTU;
+    if (settings.get_boolean('floating-island-theme-enabled'))
+        return PANEL_MODE_FLOATING_ISLAND;
     return PANEL_MODE_DOCK;
 }
 
@@ -380,6 +391,8 @@ export function getRequestedPanelMode(settings) {
         return PANEL_MODE_MACOS_DOCK;
     if (settings.get_boolean('ubuntu-theme-enabled'))
         return PANEL_MODE_UBUNTU;
+    if (settings.get_boolean('floating-island-theme-enabled'))
+        return PANEL_MODE_FLOATING_ISLAND;
     if (settings.get_boolean('default-gnome-panel'))
         return PANEL_MODE_DEFAULT;
     return PANEL_MODE_TASKBAR;
@@ -580,6 +593,8 @@ function applyInitialPanelModeSettings(settings, mode) {
     } else if (mode === PANEL_MODE_UBUNTU) {
         applyDefaultPanelSettings(settings);
         applyUbuntuDockDefaults(settings);
+    } else if (mode === PANEL_MODE_FLOATING_ISLAND) {
+        applyFloatingIslandDefaults(settings);
     } else if (mode === PANEL_MODE_WINDOWS_10) {
         applyWindows10ThemeDefaults(settings);
     } else if (mode === PANEL_MODE_WINDOWS_11) {
@@ -610,6 +625,7 @@ function setModeFlags(settings, mode) {
     );
     settings.set_boolean('macos-dock-theme-enabled', mode === PANEL_MODE_MACOS_DOCK);
     settings.set_boolean('ubuntu-theme-enabled', mode === PANEL_MODE_UBUNTU);
+    settings.set_boolean('floating-island-theme-enabled', mode === PANEL_MODE_FLOATING_ISLAND);
     if (isDockThemeMode(mode))
         settings.set_boolean('dock-mode', true);
     else if (mode !== PANEL_MODE_DEFAULT)

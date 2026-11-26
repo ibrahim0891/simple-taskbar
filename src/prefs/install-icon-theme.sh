@@ -70,11 +70,14 @@ case "$THEME_ID" in
     win11)
         install_github_theme "Win11-icon-theme" "https://github.com/yeyushengfan258/Win11-icon-theme.git"
         ;;
+    tela-circle)
+        install_github_theme "Tela-circle-icon-theme" "https://github.com/vinceliuice/Tela-circle-icon-theme.git"
+        ;;
     yaru)
         install_yaru
         ;;
     *)
-        echo "Usage: $0 {mactahoe|win11|yaru}" >&2
+        echo "Usage: $0 {mactahoe|win11|tela-circle|yaru}" >&2
         exit 2
         ;;
 esac

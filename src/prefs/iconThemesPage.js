@@ -36,6 +36,12 @@ function getIconPacks() {
             description: _('Windows 11 Fluent icon theme (yeyushengfan258/Win11-icon-theme)'),
         },
         {
+            id: 'tela-circle',
+            name: 'Tela Circle',
+            themeName: 'Tela-circle',
+            description: _('Circular flat icon theme (vinceliuice/Tela-circle-icon-theme)'),
+        },
+        {
             id: 'yaru',
             name: 'Yaru',
             themeName: 'Yaru',

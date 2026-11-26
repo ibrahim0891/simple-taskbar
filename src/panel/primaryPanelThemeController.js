@@ -181,6 +181,10 @@ export class PrimaryPanelThemeController {
             Main.panel.add_style_class_name('simple-taskbar-floating');
         else
             Main.panel.remove_style_class_name('simple-taskbar-floating');
+        if (this._settings.get_boolean('floating-island-theme-enabled'))
+            Main.panel.add_style_class_name('simple-taskbar-floating-island');
+        else
+            Main.panel.remove_style_class_name('simple-taskbar-floating-island');
         const windowsXpThemeEnabled = this._settings.get_boolean('windows-xp-theme-enabled');
         this._setPanelStyle(panelSurfaceStyle(Main.panel, this._settings, {
             monitor,
@@ -214,6 +218,7 @@ export class PrimaryPanelThemeController {
         if (Main.panel.has_style_class_name('simple-taskbar-floating'))
             syncPanelBlurCornerRadius(Main.panel, 0);
         Main.panel.remove_style_class_name('simple-taskbar-floating');
+        Main.panel.remove_style_class_name('simple-taskbar-floating-island');
         Main.panel.remove_style_class_name('simple-taskbar-theme-light');
         Main.panel.remove_style_class_name('simple-taskbar-theme-dark');
         Main.panel.remove_style_class_name('simple-taskbar-panel-top');

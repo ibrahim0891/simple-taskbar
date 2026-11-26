@@ -84,6 +84,10 @@ export function getStartIconDisplayName(location) {
         return _('Windows 11');
     if (location === 'builtin:ten')
         return _('Ten-style');
+    if (location === 'builtin:circle-grid')
+        return _('Circle Grid');
+    if (location === 'builtin:macos-launchpad')
+        return _('macOS Launchpad');
     if (location.startsWith('distro:')) {
         return distroIconDetails(
             location.slice('distro:'.length)
@@ -219,6 +223,16 @@ class StartIconChooserDialog extends Adw.Window {
                 location: 'builtin:ten',
                 displayName: _('Ten-style'),
                 searchText: 'ten style built in',
+            },
+            {
+                location: 'builtin:circle-grid',
+                displayName: _('Circle Grid'),
+                searchText: 'circle grid android circular built in',
+            },
+            {
+                location: 'builtin:macos-launchpad',
+                displayName: _('macOS Launchpad'),
+                searchText: 'macos launchpad app grid built in',
             },
         ];
 

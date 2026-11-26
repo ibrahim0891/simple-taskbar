@@ -237,6 +237,40 @@ export function drawWindows11Mode(cr, width, height, palette) {
     });
 }
 
+export function drawFloatingIslandMode(cr, width, height, palette) {
+    drawScreen(cr, width, height, palette, (screen, foreground, accent) => {
+        const bar = barRectangle(screen, 'bottom', {short: true, floating: true});
+        const radius = bar.height / 2;
+        fillRectangle(cr, bar, foreground, 0.22, radius);
+        roundedRectangle(cr, bar.x, bar.y, bar.width, bar.height, radius);
+        setColor(cr, foreground, 0.45);
+        cr.setLineWidth(0.8);
+        cr.stroke();
+
+        const dotDiameter = bar.height * 0.62;
+        const dotRadius = dotDiameter / 2;
+        const gap = 3;
+        const count = 4;
+        const totalWidth = count * dotDiameter + (count - 1) * gap;
+        const startX = bar.x + (bar.width - totalWidth) / 2;
+        const y = bar.y + (bar.height - dotDiameter) / 2;
+        for (let i = 0; i < count; i++) {
+            fillRectangle(
+                cr,
+                {
+                    x: startX + i * (dotDiameter + gap),
+                    y,
+                    width: dotDiameter,
+                    height: dotDiameter,
+                },
+                i === 0 ? accent : foreground,
+                i === 0 ? 0.95 : 0.75,
+                dotRadius
+            );
+        }
+    });
+}
+
 export function addChoiceCards(group, {choices, columns = 0, onSelected, connectSettings}) {
     const styleManager = Adw.StyleManager.get_default();
     const container = columns

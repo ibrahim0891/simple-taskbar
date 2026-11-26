@@ -6,6 +6,8 @@ const BUILTIN_START_ICONS = new Map([
     ['builtin:eleven', 'eleven-start-symbolic.svg'],
     ['builtin:windows11', 'windows-11.svg'],
     ['builtin:ten', 'ten-start-symbolic.svg'],
+    ['builtin:circle-grid', 'circle-grid.svg'],
+    ['builtin:macos-launchpad', 'macos-launchpad.svg'],
 ]);
 
 const DISTRO_LOCATION_PREFIX = 'distro:';

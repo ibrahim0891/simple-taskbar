@@ -10,11 +10,12 @@ import {HOVER_ACTION} from './interactionActions.js';
 import {CLASSIC_HIGHLIGHT_SETTINGS, TASKBAR_HIGHLIGHT_STYLE} from './classicHighlightSettings.js';
 
 export function applyMacosDockDefaults(settings) {
-    settings.set_int('icon-size', 48);
+    settings.set_int('icon-size', 72);
     settings.set_int('icon-spacing', 6);
     settings.set_int('start-button-padding', 2);
     settings.set_boolean('windows-start-menu-enabled', false);
     settings.set_boolean('gnome-start-button-visible', true);
+    settings.set_string('start-button-custom-icon', 'builtin:macos-launchpad');
     settings.set_boolean('use-pinned-apps-as-launchers', false);
     settings.set_boolean('show-pinned-app-separator', true);
     settings.set_boolean('focused-app-visible', true);

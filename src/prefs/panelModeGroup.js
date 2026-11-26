@@ -9,6 +9,7 @@ import {
     PANEL_AXIS_PROFILE_ENABLED_KEYS,
     PANEL_MODE_DEFAULT,
     PANEL_MODE_DOCK,
+    PANEL_MODE_FLOATING_ISLAND,
     PANEL_MODE_MACOS_DOCK,
     PANEL_MODE_TASKBAR,
     PANEL_MODE_UBUNTU,
@@ -24,6 +25,7 @@ import {
     addChoiceCards,
     drawDefaultPanelMode,
     drawDockMode,
+    drawFloatingIslandMode,
     drawMacosDockMode,
     drawTaskbarMode,
     drawUbuntuMode,
@@ -164,6 +166,13 @@ export function addPanelModeGroup({
             tooltip: _('Ubuntu Mode Options'),
             keys: DOCK_OVERVIEW_BEHAVIOR_KEYS,
         },
+        {
+            mode: PANEL_MODE_FLOATING_ISLAND,
+            label: _('Floating Island'),
+            draw: drawFloatingIslandMode,
+            subtitle: _('Dynamic-width pill with full rounded corners and unified circular icon spacing'),
+            tooltip: _('Floating Island Overview Behavior'),
+        },
     ];
 
     const cards = addChoiceCards(group, {
@@ -223,6 +232,7 @@ export function addPanelModeGroup({
         'dock-mode',
         'macos-dock-theme-enabled',
         'ubuntu-theme-enabled',
+        'floating-island-theme-enabled',
         'windows-xp-theme-enabled',
         'windows-10-theme-enabled',
     ])
